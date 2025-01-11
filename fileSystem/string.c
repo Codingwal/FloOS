@@ -1,5 +1,5 @@
 #include "string.h"
-#include <stdio.h>
+#include <malloc.h>
 
 uint string_length(const char *str)
 {
@@ -51,4 +51,40 @@ int string_tokenize(char **destArr, char *str, char delimeter, uint maxTokenCoun
         str++;
     }
     return maxTokenCount;
+}
+
+char *string_find(const char *str, char c)
+{
+    while (*str && *str != c)
+    {
+        str++;
+    }
+    return (char *)str;
+}
+
+char *string_findFromBack(const char *str, uint strLength, char c)
+{
+    const char *it = str + strLength;
+    while (*it != c)
+    {
+        if (it == str)
+            return NULL;
+        it--;
+    }
+    return (char *)it;
+}
+
+char *string_substring(const char *str, uint length)
+{
+    if (!str || length == 0)
+        return NULL;
+
+    char *res = malloc(length + 1);
+    uint i = 0;
+    for (; i < length && str[i] != '\0'; i++)
+    {
+        res[i] = str[i];
+    }
+    res[i] = '\0';
+    return res;
 }
