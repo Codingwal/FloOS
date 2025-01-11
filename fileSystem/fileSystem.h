@@ -18,4 +18,7 @@ typedef struct FileSystem
 
 ExitCode fileSystem_init(FileSystem *fs);
 
-FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *name);
+FileInfo *fileSystem_createFileInfo(FileSystem *fs, const char *path);
+FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *path);
+ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recursive);
+ExitCode fileSystem_printFileInfo(const FileInfo *file);
