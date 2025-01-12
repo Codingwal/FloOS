@@ -142,14 +142,18 @@ ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool recurs
 }
 ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recursive)
 {
-    const char *name = string_findFromBack(path, string_length(path), '/') + 1;
-    char *pathExceptName = string_substring(path, name - path - 1);
-
-    if (name == (char *)1) // NULL was returned -> the string doesn't contain '/' -> file with root as parent
+    const char *name = string_findFromBack(path, string_length(path), '/');
+    char *pathExceptName;
+    if (!name) // string doesn't contain '/' -> file with root as parent
     {
         name = path;
         pathExceptName = malloc(1);
         pathExceptName[0] = '\0';
+    }
+    else
+    {
+        pathExceptName = string_substring(path, name - path);
+        name++; // Don't include '/'
     }
 
     FileInfo *parent = fileSystem_getFileInfo(fs, pathExceptName);
@@ -165,7 +169,7 @@ ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recurs
     }
 
     FileInfo *file = parent->children;
-    while (file)
+    while (file->next)
     {
         if (string_compare(file->next->name, name))
         {
@@ -178,12 +182,24 @@ ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recurs
 
 FileInfo *fileSystem_createFileInfo(FileSystem *fs, const char *path)
 {
-    char *name = string_findFromBack(path, string_length(path), '/') + 1;
-    char *pathExceptName = string_substring(path, name - path - 1);
+    const char *name = string_findFromBack(path, string_length(path), '/');
+    char *pathExceptName;
+    if (!name) // string doesn't contain '/' -> file with root as parent
+    {
+        name = path;
+        pathExceptName = malloc(1);
+        pathExceptName[0] = '\0';
+    }
+    else
+    {
+        pathExceptName = string_substring(path, name - path);
+        name++; // Don't include '/'
+    }
 
     FileInfo *parent = fileSystem_getFileInfo(fs, pathExceptName);
 
     free(pathExceptName);
+
     return fileSystem_createChildFileInfo(fs, parent, name);
 }
 

@@ -23,9 +23,5 @@ int main()
     if (fileSystem_deleteFileInfo(fileSystem, "user/documents", true) == FAILURE)
         printf("Failed to delete user/documents\n");
 
-    // Try to print file infos
-    fileSystem_printFileInfo(fileSystem_getFileInfo(fileSystem, "user/documents"));
-    fileSystem_printFileInfo(fileSystem_getFileInfo(fileSystem, "user/documents/test.txt"));
-
     fileSystem_printAllFileInfos(fileSystem);
 }

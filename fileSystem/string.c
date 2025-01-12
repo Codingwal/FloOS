@@ -12,6 +12,8 @@ uint string_length(const char *str)
 
 bool string_compare(const char *lhs, const char *rhs)
 {
+    if (!lhs || !rhs)
+        return false;
     while (*lhs == *rhs)
     {
         if (*lhs == '\0')
@@ -80,7 +82,7 @@ char *string_substring(const char *str, uint length)
         return NULL;
 
     char *res = malloc(length + 1);
-    if (res == NULL)
+    if (!res)
         return NULL;
 
     uint i = 0;
