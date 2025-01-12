@@ -54,6 +54,9 @@ FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *name)
     if (!name)
         return NULL;
 
+    if (string_length(name) == 0)
+        return fs->root;
+
     char *nameCopy = malloc(string_length(name));
     if (!nameCopy)
         return NULL;
@@ -77,31 +80,56 @@ FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *name)
 
     return file;
 }
+ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
+{
+    if (!file)
+        return FAILURE;
 
+    FileInfo *child = file->children;
+    while (child)
+    {
+        if (fileSystem_deleteFileInfoAndChildren(child) == FAILURE)
+            return FAILURE;
+        child = child->next;
+    }
+    free(file->name);
+    free(file);
+    return SUCCESS;
+}
 ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool recursive)
 {
     FileInfo *fileToDelete = (*prevNodeNextPtr);
-    // Handle folders
-    if (fileToDelete->children)
+
+    if (fileToDelete->children) // Folder
     {
         if (!recursive)
             return FAILURE;
+        *prevNodeNextPtr = fileToDelete->next; // Remove fileToDelete from the linked list
+        return fileSystem_deleteFileInfoAndChildren(fileToDelete);
     }
-
-    *prevNodeNextPtr = fileToDelete->next;
-    free(fileToDelete->name);
-    free(fileToDelete);
-    return SUCCESS;
+    else // File
+    {
+        *prevNodeNextPtr = fileToDelete->next; // Remove fileToDelete from the linked list
+        free(fileToDelete->name);
+        free(fileToDelete);
+        return SUCCESS;
+    }
 }
 ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recursive)
 {
-    char *name = string_findFromBack(path, string_length(path), '/') + 1;
+    const char *name = string_findFromBack(path, string_length(path), '/') + 1;
     char *pathExceptName = string_substring(path, name - path - 1);
 
-    printf("%s\n", name);
-    printf("%s\n", pathExceptName);
+    if (name == (char *)1) // NULL was returned -> the string doesn't contain '/' -> file with root as parent
+    {
+        name = path;
+        pathExceptName = malloc(1);
+        pathExceptName[0] = '\0';
+    }
 
     FileInfo *parent = fileSystem_getFileInfo(fs, pathExceptName);
+
+    free(pathExceptName);
 
     if (!parent || !parent->children)
         return FAILURE;

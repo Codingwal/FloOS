@@ -80,6 +80,9 @@ char *string_substring(const char *str, uint length)
         return NULL;
 
     char *res = malloc(length + 1);
+    if (res == NULL)
+        return NULL;
+
     uint i = 0;
     for (; i < length && str[i] != '\0'; i++)
     {

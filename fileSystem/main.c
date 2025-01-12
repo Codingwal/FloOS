@@ -19,18 +19,11 @@ int main()
     if (!test)
         printf("Failed to create user/documents/test.txt\n");
 
-    // Create "user/documents/test.txt"
-    if (fileSystem_deleteFileInfo(fileSystem, "user/documents/test.txt", false) == FAILURE)
-        printf("Failed to delete user/documents/test.txt\n");
+    // Delete "user/documents"
+    if (fileSystem_deleteFileInfo(fileSystem, "user", true) == FAILURE)
+        printf("Failed to delete user/documents\n");
 
-    // Get "user/documents/test.txt"
-    FileInfo *file = fileSystem_getFileInfo(fileSystem, "user/documents");
-    if (file)
-    {
-        fileSystem_printFileInfo(file);
-    }
-    else
-        printf("Failed to get file info\n");
-    
+    // Try to print file infos
+    fileSystem_printFileInfo(fileSystem_getFileInfo(fileSystem, "user/documents"));
     fileSystem_printFileInfo(fileSystem_getFileInfo(fileSystem, "user/documents/test.txt"));
 }
