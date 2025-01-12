@@ -10,6 +10,31 @@ ExitCode fileSystem_printFileInfo(const FileInfo *file)
     printf("FileInfo of \"%s\": size = %d, isFolder = %d\n", file->name, file->size, (bool)file->children);
     return SUCCESS;
 }
+ExitCode fileSystem_printFileAndChildren(const FileInfo *file, uint indentation)
+{
+    for (uint i = 0; i < indentation; i++)
+        printf("  ");
+
+    if (file->children)
+    {
+        printf("%s/\n", file->name);
+        file = file->children;
+        indentation++;
+        while (file)
+        {
+            if (fileSystem_printFileAndChildren(file, indentation) == FAILURE)
+                return FAILURE;
+            file = file->next;
+        }
+    }
+    else
+        printf("%s\n", file->name);
+    return SUCCESS;
+}
+ExitCode fileSystem_printAllFileInfos(const FileSystem *fs)
+{
+    return fileSystem_printFileAndChildren(fs->root, 0);
+}
 FileInfo *fileSystem_allocFile()
 {
     return malloc(sizeof(FileInfo));
@@ -167,7 +192,7 @@ ExitCode fileSystem_init(FileSystem *fs)
     fs->root = fileSystem_allocFile();
     if (!fs->root)
         return FAILURE;
-    fs->root->name = "root/";
+    fs->root->name = "root";
     fs->root->size = 0;
     fs->root->children = NULL;
     fs->root->next = NULL;
