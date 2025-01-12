@@ -30,6 +30,9 @@ char *string_find(const char *str, char c);
 /// @return A pointer to the first occurence of c or NULL if c isn't present.
 char *string_findFromBack(const char *str, uint strLength, char c);
 
-/// @brief Create a copy of str with size length or string_length(str), depending on what is smaller.
+/// @brief Creates a copy of str with size length or string_length(str), depending on what is smaller.
 /// @return The newly allocated string.
 char *string_substring(const char *str, uint length);
+
+/// @brief Reverses the string
+ExitCode string_reverse(char*str, uint length);

@@ -1,23 +1,24 @@
 #include "fileSystem.h"
-#include <malloc.h>
+#include "alloc.h"
 #include "string.h"
-#include <stdio.h>
+#include "stringFormat.h"
+#include "io.h"
 
 ExitCode fileSystem_printFileInfo(const FileInfo *file)
 {
     if (!file)
         return FAILURE;
-    printf("FileInfo of \"%s\": size = %d, isFolder = %d\n", file->name, file->size, (bool)file->children);
+    // printf("FileInfo of \"%s\": size = %d, isFolder = %d\n", file->name, file->size, (bool)file->children);
     return SUCCESS;
 }
 ExitCode fileSystem_printFileAndChildren(const FileInfo *file, uint indentation)
 {
     for (uint i = 0; i < indentation; i++)
-        printf("  ");
+        print("  ");
 
     if (file->children)
     {
-        printf("%s/\n", file->name);
+        print_s("%s/\n", file->name);
         file = file->children;
         indentation++;
         while (file)
@@ -28,7 +29,7 @@ ExitCode fileSystem_printFileAndChildren(const FileInfo *file, uint indentation)
         }
     }
     else
-        printf("%s\n", file->name);
+        print_s("%s\n", file->name);
     return SUCCESS;
 }
 ExitCode fileSystem_printAllFileInfos(const FileSystem *fs)
@@ -37,7 +38,7 @@ ExitCode fileSystem_printAllFileInfos(const FileSystem *fs)
 }
 FileInfo *fileSystem_allocFile()
 {
-    return malloc(sizeof(FileInfo));
+    return alloc(sizeof(FileInfo));
 }
 FileInfo *fileSystem_createChildFileInfo(FileSystem *fs, FileInfo *parent, const char *name)
 {
@@ -49,7 +50,7 @@ FileInfo *fileSystem_createChildFileInfo(FileSystem *fs, FileInfo *parent, const
     if (!file)
         return NULL;
 
-    file->name = malloc(string_length(name) + 1);
+    file->name = alloc(string_length(name) + 1);
     string_copy(file->name, name);
     file->size = 0;
     file->children = NULL;
@@ -82,7 +83,7 @@ FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *name)
     if (string_length(name) == 0)
         return fs->root;
 
-    char *nameCopy = malloc(string_length(name));
+    char *nameCopy = alloc(string_length(name));
     if (!nameCopy)
         return NULL;
     if (string_copy(nameCopy, name) == FAILURE)
@@ -100,9 +101,7 @@ FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *name)
         if (!file)
             return NULL;
     }
-
-    free(nameCopy);
-
+    freeAllocation(nameCopy);
     return file;
 }
 ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
@@ -117,8 +116,8 @@ ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
             return FAILURE;
         child = child->next;
     }
-    free(file->name);
-    free(file);
+    freeAllocation(file->name);
+    freeAllocation(file);
     return SUCCESS;
 }
 ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool recursive)
@@ -135,8 +134,8 @@ ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool recurs
     else // File
     {
         *prevNodeNextPtr = fileToDelete->next; // Remove fileToDelete from the linked list
-        free(fileToDelete->name);
-        free(fileToDelete);
+        freeAllocation(fileToDelete->name);
+        freeAllocation(fileToDelete);
         return SUCCESS;
     }
 }
@@ -147,7 +146,7 @@ ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recurs
     if (!name) // string doesn't contain '/' -> file with root as parent
     {
         name = path;
-        pathExceptName = malloc(1);
+        pathExceptName = alloc(1);
         pathExceptName[0] = '\0';
     }
     else
@@ -158,7 +157,7 @@ ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recurs
 
     FileInfo *parent = fileSystem_getFileInfo(fs, pathExceptName);
 
-    free(pathExceptName);
+    freeAllocation(pathExceptName);
 
     if (!parent || !parent->children)
         return FAILURE;
@@ -187,7 +186,7 @@ FileInfo *fileSystem_createFileInfo(FileSystem *fs, const char *path)
     if (!name) // string doesn't contain '/' -> file with root as parent
     {
         name = path;
-        pathExceptName = malloc(1);
+        pathExceptName = alloc(1);
         pathExceptName[0] = '\0';
     }
     else
@@ -198,7 +197,7 @@ FileInfo *fileSystem_createFileInfo(FileSystem *fs, const char *path)
 
     FileInfo *parent = fileSystem_getFileInfo(fs, pathExceptName);
 
-    free(pathExceptName);
+    freeAllocation(pathExceptName);
 
     return fileSystem_createChildFileInfo(fs, parent, name);
 }

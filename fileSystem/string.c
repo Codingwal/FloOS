@@ -1,5 +1,5 @@
 #include "string.h"
-#include <malloc.h>
+#include "alloc.h"
 
 uint string_length(const char *str)
 {
@@ -81,7 +81,7 @@ char *string_substring(const char *str, uint length)
     if (!str || length == 0)
         return NULL;
 
-    char *res = malloc(length + 1);
+    char *res = alloc(length + 1);
     if (!res)
         return NULL;
 
@@ -92,4 +92,23 @@ char *string_substring(const char *str, uint length)
     }
     res[i] = '\0';
     return res;
+}
+
+ExitCode string_reverse(char *str, uint length)
+{
+    if (!str || length == 0)
+        return FAILURE;
+
+    char *end = str + length - 1;
+
+    while (str < end)
+    {
+        char tmp = *end;
+        *end = *str;
+        *str = tmp;
+
+        end--;
+        str++;
+    }
+    return SUCCESS;
 }
