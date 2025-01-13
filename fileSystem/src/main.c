@@ -6,9 +6,11 @@
 
 int main()
 {
+    // Initialize allocator
+    allocator_init(&allocator);
+
     // Initialize fileSystem
-    FileSystem *fileSystem = alloc(sizeof(FileSystem));
-    fileSystem_init(fileSystem);
+    FileSystem *fileSystem = fileSystem_create();
 
     // Create "user/documents"
     FileInfo *documents = fileSystem_createFileInfo(fileSystem, "user/documents");
@@ -25,4 +27,9 @@ int main()
         print("Failed to delete user/documents\n");
 
     fileSystem_printAllFileInfos(fileSystem);
+
+    fileSystem_dispose(fileSystem);
+    fileSystem = NULL;
+
+    allocator_dispose(&allocator);
 }

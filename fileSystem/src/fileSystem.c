@@ -4,6 +4,19 @@
 #include "stringFormat.h"
 #include "io.h"
 
+struct FileInfo
+{
+    char *name;
+    uint size;                 // File: size in bytes, Directory: count of subfiles
+    struct FileInfo *children; // File: NULL
+    struct FileInfo *next;     // File headers are implemented as a linked list
+};
+struct FileSystem
+{
+    FileInfo *root;
+    uint fileCount;
+};
+
 ExitCode fileSystem_printFileInfo(const FileInfo *file)
 {
     if (!file)
@@ -13,6 +26,9 @@ ExitCode fileSystem_printFileInfo(const FileInfo *file)
 }
 ExitCode fileSystem_printFileAndChildren(const FileInfo *file, uint indentation)
 {
+    if (!file)
+        return NULL;
+
     for (uint i = 0; i < indentation; i++)
         print("  ");
 
@@ -34,6 +50,8 @@ ExitCode fileSystem_printFileAndChildren(const FileInfo *file, uint indentation)
 }
 ExitCode fileSystem_printAllFileInfos(const FileSystem *fs)
 {
+    if (!fs)
+        return NULL;
     return fileSystem_printFileAndChildren(fs->root, 0);
 }
 FileInfo *fileSystem_allocFile()
@@ -68,6 +86,9 @@ FileInfo *fileSystem_createChildFileInfo(FileSystem *fs, FileInfo *parent, const
 
 FileInfo *fileSystem_getChildFileInfo(const FileInfo *parent, const char *name)
 {
+    if (!parent || !name)
+        return NULL;
+
     FileInfo *file = parent->children;
     while (file && !string_compare(file->name, name))
     {
@@ -77,7 +98,7 @@ FileInfo *fileSystem_getChildFileInfo(const FileInfo *parent, const char *name)
 }
 FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *name)
 {
-    if (!name)
+    if (!fs || !name)
         return NULL;
 
     if (string_length(name) == 0)
@@ -122,6 +143,9 @@ ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
 }
 ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool recursive)
 {
+    if (!prevNodeNextPtr || !*prevNodeNextPtr)
+        return FAILURE;
+
     FileInfo *fileToDelete = (*prevNodeNextPtr);
 
     if (fileToDelete->children) // Folder
@@ -141,6 +165,9 @@ ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool recurs
 }
 ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recursive)
 {
+    if (!fs || !path)
+        return FAILURE;
+
     const char *name = string_findFromBack(path, string_length(path), '/');
     char *pathExceptName;
     if (!name) // string doesn't contain '/' -> file with root as parent
@@ -181,6 +208,9 @@ ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recurs
 
 FileInfo *fileSystem_createFileInfo(FileSystem *fs, const char *path)
 {
+    if (!fs || !path)
+        return NULL;
+
     const char *name = string_findFromBack(path, string_length(path), '/');
     char *pathExceptName;
     if (!name) // string doesn't contain '/' -> file with root as parent
@@ -202,19 +232,45 @@ FileInfo *fileSystem_createFileInfo(FileSystem *fs, const char *path)
     return fileSystem_createChildFileInfo(fs, parent, name);
 }
 
-ExitCode fileSystem_init(FileSystem *fs)
+FileSystem *fileSystem_create()
 {
+    FileSystem *fs = alloc(sizeof(FileSystem));
+    if (!fs)
+        return NULL;
+
     fs->root = fileSystem_allocFile();
     if (!fs->root)
-        return FAILURE;
-    fs->root->name = "root";
+    {
+        freeAllocation(fs);
+        return NULL;
+    }
+    fs->root->name = alloc(5);
+    if (!fs->root->name)
+    {
+        freeAllocation(fs);
+        freeAllocation(fs->root);
+        return NULL;
+    }
+    string_copy(fs->root->name, "root");
     fs->root->size = 0;
     fs->root->children = NULL;
     fs->root->next = NULL;
     fs->fileCount = 1;
 
-    fileSystem_createChildFileInfo(fs, fs->root, "bin");
-    fileSystem_createChildFileInfo(fs, fs->root, "user");
+    if (!fileSystem_createChildFileInfo(fs, fs->root, "bin") || !fileSystem_createChildFileInfo(fs, fs->root, "user"))
+    {
+        freeAllocation(fs);
+        freeAllocation(fs->root);
+        freeAllocation(fs->root->name);
+        return NULL;
+    }
 
+    return fs;
+}
+ExitCode fileSystem_dispose(FileSystem *fs)
+{
+    if (fileSystem_deleteFileInfoAndChildren(fs->root) == FAILURE)
+        return FAILURE;
+    freeAllocation(fs);
     return SUCCESS;
 }
