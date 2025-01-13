@@ -18,7 +18,7 @@ int main()
     // Create "user/documents/test.txt"
     FileInfo *test = fileSystem_createFileInfo(fileSystem, "user/documents/test.txt");
     if (!test)
-        print("Failed to create user/documents/test.txt\n");
+        print("Failed to create user/documents/testas.txt\n");
 
     // Delete "user/documents"
     if (fileSystem_deleteFileInfo(fileSystem, "user/documents", true) == FAILURE)
