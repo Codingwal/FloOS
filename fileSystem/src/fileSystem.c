@@ -24,7 +24,7 @@ ExitCode fileSystem_printFileInfo(const FileInfo *file)
     // printf("FileInfo of \"%s\": size = %d, isFolder = %d\n", file->name, file->size, (bool)file->children);
     return SUCCESS;
 }
-ExitCode fileSystem_printFileAndChildren(const FileInfo *file, uint indentation)
+static ExitCode fileSystem_printFileAndChildren(const FileInfo *file, uint indentation)
 {
     if (!file)
         return NULL;
@@ -54,11 +54,11 @@ ExitCode fileSystem_printAllFileInfos(const FileSystem *fs)
         return NULL;
     return fileSystem_printFileAndChildren(fs->root, 0);
 }
-FileInfo *fileSystem_allocFile()
+static FileInfo *fileSystem_allocFile()
 {
     return alloc(sizeof(FileInfo));
 }
-FileInfo *fileSystem_createChildFileInfo(FileSystem *fs, FileInfo *parent, const char *name)
+static FileInfo *fileSystem_createChildFileInfo(FileSystem *fs, FileInfo *parent, const char *name)
 {
     if (!fs || !parent || !name)
         return NULL;
@@ -84,7 +84,7 @@ FileInfo *fileSystem_createChildFileInfo(FileSystem *fs, FileInfo *parent, const
     return file;
 }
 
-FileInfo *fileSystem_getChildFileInfo(const FileInfo *parent, const char *name)
+static FileInfo *fileSystem_getChildFileInfo(const FileInfo *parent, const char *name)
 {
     if (!parent || !name)
         return NULL;
@@ -125,7 +125,7 @@ FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *name)
     freeAllocation(nameCopy);
     return file;
 }
-ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
+static ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
 {
     if (!file)
         return FAILURE;
@@ -141,7 +141,7 @@ ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
     freeAllocation(file);
     return SUCCESS;
 }
-ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool recursive)
+static ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool recursive)
 {
     if (!prevNodeNextPtr || !*prevNodeNextPtr)
         return FAILURE;
