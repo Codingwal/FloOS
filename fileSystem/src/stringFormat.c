@@ -2,6 +2,10 @@
 #include "io.h"
 #include "string.h"
 
+// ExitCode print_ic(const char *str, int i, char c)
+// {
+//     print_i(str, i);
+// }
 ExitCode intToString(char *dest, int value, int base)
 {
     if (!dest)
@@ -38,10 +42,12 @@ ExitCode intToString(char *dest, int value, int base)
     dest[i] = '\0';
     return SUCCESS;
 }
-ExitCode print_i(const char *str, int i)
+ExitCode print_(const char *str, uint argc, int64 *argv)
 {
     if (!str)
         return FAILURE;
+
+    uint argIndex = 0;
 
     for (; *str != '\0'; str++)
     {
@@ -51,81 +57,53 @@ ExitCode print_i(const char *str, int i)
                 return FAILURE;
             continue;
         }
-        switch (*++str)
+        if (*++str == '%') // double '%'
         {
-        case '%':
             if (printChar('%') == FAILURE)
                 return FAILURE;
             continue;
+        }
+
+        if (argIndex >= argc)
+            return FAILURE;
+        int64 arg = argv[argIndex++];
+
+        switch (*str)
+        {
         case 'd':
         case 'i':
             char tmp[50];
-            if (intToString(tmp, i, 10) == FAILURE)
+            if (intToString(tmp, (int)arg, 10) == FAILURE)
                 return FAILURE;
             if (print(tmp) == FAILURE)
                 return FAILURE;
             break;
+        case 'c':
+            if (printChar((char)arg) == FAILURE)
+                return FAILURE;
+            break;
+        case 's':
+            if (print((char *)arg) == FAILURE)
+                return FAILURE;
+            break;
         default:
             return FAILURE;
         }
     }
     return SUCCESS;
+}
+ExitCode print_i(const char *str, int i)
+{
+    int64 argv[1] = {i};
+    return print_(str, sizeof(argv), argv);
 }
 ExitCode print_c(const char *str, char c)
 {
-    if (!str)
-        return FAILURE;
-
-    for (; *str != '\0'; str++)
-    {
-        if (*str != '%')
-        {
-            if (printChar(*str) == FAILURE)
-                return FAILURE;
-            continue;
-        }
-        switch (*++str)
-        {
-        case '%':
-            if (printChar('%') == FAILURE)
-                return FAILURE;
-            continue;
-        case 'c':
-            if (printChar(c) == FAILURE)
-                return FAILURE;
-            break;
-        default:
-            return FAILURE;
-        }
-    }
-    return SUCCESS;
+    int64 argv[1] = {c};
+    return print_(str, sizeof(argv), argv);
 }
 ExitCode print_s(const char *str, const char *s)
 {
-    if (!str)
-        return FAILURE;
-
-    for (; *str != '\0'; str++)
-    {
-        if (*str != '%')
-        {
-            if (printChar(*str) == FAILURE)
-                return FAILURE;
-            continue;
-        }
-        switch (*++str)
-        {
-        case '%':
-            if (printChar('%') == FAILURE)
-                return FAILURE;
-            continue;
-        case 's':
-            if (print(s) == FAILURE)
-                return FAILURE;
-            break;
-        default:
-            return FAILURE;
-        }
-    }
-    return SUCCESS;
+    int64 argv[1] = {(int64)s};
+    return print_(str, sizeof(argv), argv);
 }
