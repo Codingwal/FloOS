@@ -5,12 +5,12 @@ typedef unsigned char byte;
 typedef long long int int64;
 
 #ifndef bool
-    #define bool _Bool
-    #define true 1
-    #define false 0
+#define bool _Bool
+#define true 1
+#define false 0
 #endif
 #ifndef NULL
-    #define NULL 0
+#define NULL 0
 #endif
 
 typedef enum
@@ -24,7 +24,7 @@ typedef enum
 #define NARGS(...) NARGS_SEQ(__VA_ARGS__, 8, 7, 6, 5, 4, 3, 2, 1)
 
 // Lets macros expand before concating them
-#define PRIMITIVE_CAT(x, y) x ## y
+#define PRIMITIVE_CAT(x, y) x##y
 #define CAT(x, y) PRIMITIVE_CAT(x, y)
 
 // Calls a macro on each argument passed in

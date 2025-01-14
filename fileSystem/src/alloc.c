@@ -15,7 +15,7 @@ ExitCode allocator_init(Allocator *alloc)
 ExitCode allocator_dispose(Allocator *alloc)
 {
     if (alloc->allocationCount != 0)
-        print_i("Found %i memory leaks!\n", alloc->allocationCount);
+        PRINT("Found %i memory leaks!\n", alloc->allocationCount);
     return SUCCESS;
 }
 void *alloc(uint size)

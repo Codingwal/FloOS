@@ -92,18 +92,3 @@ ExitCode print_(const char *str, uint argc, int64 *argv)
     }
     return SUCCESS;
 }
-ExitCode print_i(const char *str, int i)
-{
-    int64 argv[1] = {i};
-    return print_(str, sizeof(argv), argv);
-}
-ExitCode print_c(const char *str, char c)
-{
-    int64 argv[1] = {c};
-    return print_(str, sizeof(argv), argv);
-}
-ExitCode print_s(const char *str, const char *s)
-{
-    int64 argv[1] = {(int64)s};
-    return print_(str, sizeof(argv), argv);
-}
