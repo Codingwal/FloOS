@@ -5,17 +5,22 @@
 #include "stringFormat.h"
 #include "io.h"
 
+typedef struct Allocator
+{
+    uint allocationCount;
+} Allocator;
+
 Allocator allocator;
 
-ExitCode allocator_init(Allocator *alloc)
+ExitCode allocator_init()
 {
-    alloc->allocationCount = 0;
+    allocator.allocationCount = 0;
     return SUCCESS;
 }
-ExitCode allocator_dispose(Allocator *alloc)
+ExitCode allocator_dispose()
 {
-    if (alloc->allocationCount != 0)
-        PRINT("Found %i memory leaks!\n", alloc->allocationCount);
+    if (allocator.allocationCount != 0)
+        PRINT("Found %i memory leaks!\n", allocator.allocationCount);
     return SUCCESS;
 }
 void *alloc(uint size)
@@ -23,7 +28,7 @@ void *alloc(uint size)
     allocator.allocationCount++;
     return malloc(size);
 }
-void freeAllocation(void *ptr)
+void freeAlloc(void *ptr)
 {
     allocator.allocationCount--;
     free(ptr);

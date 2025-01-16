@@ -122,11 +122,11 @@ FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *name)
         if (!file)
             goto error;
     }
-    freeAllocation(nameCopy);
+    freeAlloc(nameCopy);
     return file;
 
 error:
-    freeAllocation(nameCopy);
+    freeAlloc(nameCopy);
     return NULL;
 }
 static ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
@@ -141,8 +141,8 @@ static ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
             return FAILURE;
         child = child->next;
     }
-    freeAllocation(file->name);
-    freeAllocation(file);
+    freeAlloc(file->name);
+    freeAlloc(file);
     return SUCCESS;
 }
 static ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool recursive)
@@ -162,8 +162,8 @@ static ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool
     else // File
     {
         *prevNodeNextPtr = fileToDelete->next; // Remove fileToDelete from the linked list
-        freeAllocation(fileToDelete->name);
-        freeAllocation(fileToDelete);
+        freeAlloc(fileToDelete->name);
+        freeAlloc(fileToDelete);
         return SUCCESS;
     }
 }
@@ -188,7 +188,7 @@ ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recurs
 
     FileInfo *parent = fileSystem_getFileInfo(fs, pathExceptName);
 
-    freeAllocation(pathExceptName);
+    freeAlloc(pathExceptName);
 
     if (!parent || !parent->children)
         return FAILURE;
@@ -231,7 +231,7 @@ FileInfo *fileSystem_createFileInfo(FileSystem *fs, const char *path)
 
     FileInfo *parent = fileSystem_getFileInfo(fs, pathExceptName);
 
-    freeAllocation(pathExceptName);
+    freeAlloc(pathExceptName);
 
     return fileSystem_createChildFileInfo(fs, parent, name);
 }
@@ -262,17 +262,17 @@ FileSystem *fileSystem_create()
     return fs;
 
 error_free3:
-    freeAllocation(fs->root->name);
+    freeAlloc(fs->root->name);
 error_free2:
-    freeAllocation(fs->root);
+    freeAlloc(fs->root);
 error_free1:
-    freeAllocation(fs);
+    freeAlloc(fs);
     return NULL;
 }
 ExitCode fileSystem_dispose(FileSystem *fs)
 {
     if (fileSystem_deleteFileInfoAndChildren(fs->root) == FAILURE)
         return FAILURE;
-    freeAllocation(fs);
+    freeAlloc(fs);
     return SUCCESS;
 }

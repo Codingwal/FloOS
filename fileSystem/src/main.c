@@ -7,7 +7,7 @@
 int main()
 {
     // Initialize allocator
-    allocator_init(&allocator);
+    allocator_init();
 
     // Initialize fileSystem
     FileSystem *fileSystem = fileSystem_create();
@@ -28,5 +28,5 @@ int main()
     fileSystem_dispose(fileSystem);
     fileSystem = NULL;
 
-    allocator_dispose(&allocator);
+    allocator_dispose();
 }
