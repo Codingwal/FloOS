@@ -108,22 +108,26 @@ FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *name)
     if (!nameCopy)
         return NULL;
     if (string_copy(nameCopy, name) == FAILURE)
-        return NULL;
+        goto error;
 
     char *tokens[10];
     int tokenCount = string_tokenize(tokens, nameCopy, '/', 10);
     if (tokenCount == -1)
-        return NULL;
+        goto error;
 
     FileInfo *file = fs->root;
     for (uint i = 0; i < tokenCount; i++)
     {
         file = fileSystem_getChildFileInfo(file, tokens[i]);
         if (!file)
-            return NULL;
+            goto error;
     }
     freeAllocation(nameCopy);
     return file;
+
+error:
+    freeAllocation(nameCopy);
+    return NULL;
 }
 static ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
 {

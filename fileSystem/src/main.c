@@ -12,22 +12,18 @@ int main()
     // Initialize fileSystem
     FileSystem *fileSystem = fileSystem_create();
 
-    // Create "user/documents"
-    FileInfo *documents = fileSystem_createFileInfo(fileSystem, "user/documents");
-    if (!documents)
-        print("Failed to create user/documents\n");
+    fileSystem_createFileInfo(fileSystem, "user/documents");
 
-    // Create "user/documents/test.txt"
-    FileInfo *test = fileSystem_createFileInfo(fileSystem, "user/documents/test.txt");
-    if (!test)
-        print("Failed to create user/documents/testas.txt\n");
+    fileSystem_createFileInfo(fileSystem, "user/documents/test.txt");
+
+    fileSystem_createFileInfo(fileSystem, "abc");
+    fileSystem_createFileInfo(fileSystem, "abc/def.test");
 
     // Delete "user/documents"
-    if (fileSystem_deleteFileInfo(fileSystem, "user/documents", true) == FAILURE)
+    if (fileSystem_deleteFileInfo(fileSystem, "user", true) == FAILURE)
         print("Failed to delete user/documents\n");
 
     fileSystem_printAllFileInfos(fileSystem);
-    fileSystem_printFileInfo(fileSystem_getFileInfo(fileSystem, "user"));
 
     fileSystem_dispose(fileSystem);
     fileSystem = NULL;
