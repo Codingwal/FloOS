@@ -8,7 +8,7 @@ struct FileInfo
 {
     char *name;
     uint size;                 // File: size in bytes, Directory: count of subfiles
-    struct FileInfo *children; // File: NULL
+    struct FileInfo *children; // File: data ptr
     struct FileInfo *next;     // File headers are implemented as a linked list
 };
 struct FileSystem
@@ -244,32 +244,30 @@ FileSystem *fileSystem_create()
 
     fs->root = fileSystem_allocFile();
     if (!fs->root)
-    {
-        freeAllocation(fs);
-        return NULL;
-    }
+        goto error_free1;
+
     fs->root->name = alloc(5);
     if (!fs->root->name)
-    {
-        freeAllocation(fs);
-        freeAllocation(fs->root);
-        return NULL;
-    }
+        goto error_free2;
     string_copy(fs->root->name, "root");
+
     fs->root->size = 0;
     fs->root->children = NULL;
     fs->root->next = NULL;
     fs->fileCount = 1;
 
     if (!fileSystem_createChildFileInfo(fs, fs->root, "bin") || !fileSystem_createChildFileInfo(fs, fs->root, "user"))
-    {
-        freeAllocation(fs);
-        freeAllocation(fs->root);
-        freeAllocation(fs->root->name);
-        return NULL;
-    }
+        goto error_free3;
 
     return fs;
+
+error_free3:
+    freeAllocation(fs->root->name);
+error_free2:
+    freeAllocation(fs->root);
+error_free1:
+    freeAllocation(fs);
+    return NULL;
 }
 ExitCode fileSystem_dispose(FileSystem *fs)
 {
