@@ -84,17 +84,13 @@ void *alloc(uint size)
     if (size == 0)
         return NULL;
 
-    const int sizes[] = {8, 32, 128, 512};
-    uint sectorindex = -1;
-    for (uint i = 0; i < 4; i++)
+    for (uint i = 0; i < SECTOR_COUNT; i++)
     {
-        if (size < sizes[i])
+        if (size < allocator.sectors[i].sizePerElement)
         {
-            sectorindex = i;
-            break;
+            return allocInSector(&allocator.sectors[i]);
         }
     }
-    return allocInSector(&allocator.sectors[sectorindex]); //
 }
 ExitCode freeAlloc(void *ptr)
 {
