@@ -3,6 +3,7 @@
 typedef unsigned int uint;
 typedef unsigned char byte;
 typedef long long int int64;
+typedef long long unsigned int uint64;
 
 #ifndef bool
 #define bool _Bool

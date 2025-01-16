@@ -11,3 +11,4 @@ ExitCode print_(const char *str, uint argc, int64 *argv);
         int64 argv[] = {APPLY(PRINT_EACH, __VA_ARGS__)}; \
         print_(str, sizeof(argv), argv);                 \
     }
+    
