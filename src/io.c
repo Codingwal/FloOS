@@ -43,12 +43,13 @@ void uart_init()
 
 static bool uart_isWriteByteReady() { return mmio_read(AUX_MU_LSR_REG) & 0x20; }
 
-void printChar(char c)
+ExitCode printChar(char c)
 {
     while (!uart_isWriteByteReady())
     {
     }
     mmio_write(AUX_MU_IO_REG, (uint)c);
+    return SUCCESS;
 }
 
 ExitCode print(const char *str)

@@ -4,5 +4,7 @@ A baremetal operating system for a rasperry pi
 
 
 Compilation info:
-- Compile using make
-- Define "OS" if the executable is supposed to be executed on the rasperry pi
+- Compile using make:
+    - Build kernel8.img with "make os"
+    - Build out.exe with "make app"
+    - Switching between targets requires running "make clean" beforehand

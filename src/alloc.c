@@ -78,11 +78,15 @@ ExitCode allocator_init()
 }
 ExitCode allocator_dispose()
 {
-    // PRINT("Found %i memory leaks!\n", allocator.allocationCount);
-
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
+
+#ifndef OS
         free(allocator.sectors[i].buffer);
+#else
+#error This has not been implemented yet
+#endif
+
         if (allocator.sectors[i].memoryMap != 0)
             print("Found memory leak(s)!\n");
     }
