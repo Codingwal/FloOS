@@ -19,6 +19,7 @@ typedef struct AllocationSector
 typedef struct Allocator
 {
     AllocationSector sectors[SECTOR_COUNT];
+    bool initialized;
 } Allocator;
 
 Allocator allocator;
@@ -30,8 +31,7 @@ static ExitCode createAllocationSector(AllocationSector *s, uint sizePerElement)
 #ifndef OS
     s->buffer = malloc(sizePerElement * 64);
 #else
-    // This has not been implemented yet
-    return FAILURE;
+    return FAILURE_NOT_IMPLEMENTED;
 #endif
 
     if (!s->buffer)
@@ -71,18 +71,21 @@ ExitCode allocator_init()
     RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[1], 32))
     RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[2], 128))
     RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[3], 512))
+    allocator.initialized = true;
     return SUCCESS;
 }
 ExitCode allocator_dispose()
 {
+    if (!allocator.initialized)
+        return FAILURE;
+
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
 
 #ifndef OS
         free(allocator.sectors[i].buffer);
 #else
-        // This has not been implemented yet
-        return FAILURE;
+        return FAILURE_NOT_IMPLEMENTED;
 #endif
 
         if (allocator.sectors[i].memoryMap != 0)
@@ -92,7 +95,7 @@ ExitCode allocator_dispose()
 }
 void *alloc(uint size)
 {
-    if (size == 0)
+    if (size == 0 || !allocator.initialized)
         return NULL;
 
     for (uint i = 0; i < SECTOR_COUNT; i++)
@@ -106,6 +109,9 @@ void *alloc(uint size)
 }
 ExitCode freeAlloc(void *ptr)
 {
+    if (!allocator.initialized)
+        return FAILURE;
+
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
         if (freeInSector(&allocator.sectors[i], ptr) == SUCCESS)
@@ -116,6 +122,9 @@ ExitCode freeAlloc(void *ptr)
 
 void allocator_print()
 {
+    if (!allocator.initialized)
+        return;
+
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
         AllocationSector *s = &allocator.sectors[i];

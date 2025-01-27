@@ -24,6 +24,7 @@ typedef enum
 {
     SUCCESS = 0,
     FAILURE = 1,
+    FAILURE_NOT_IMPLEMENTED = 2,
 } ExitCode;
 
 #define RETURN_ON_FAILURE(x) \

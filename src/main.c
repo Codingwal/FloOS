@@ -7,10 +7,13 @@
 int main()
 {
     // Initialize allocator
-    allocator_init();
+    if (allocator_init() != SUCCESS)
+        goto end;
 
     // Initialize fileSystem
     FileSystem *fileSystem = fileSystem_create();
+    if (!fileSystem)
+        goto end;
 
     fileSystem_createFileInfo(fileSystem, "user/documents");
 
@@ -27,6 +30,7 @@ int main()
 
     allocator_dispose();
 
+end:
 #ifdef OS
     while (true)
     {
