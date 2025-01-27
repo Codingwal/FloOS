@@ -1,8 +1,11 @@
 #include "alloc.h"
-#include <malloc.h>
 #include "defs.h"
 #include "stringFormat.h"
 #include "io.h"
+
+#ifndef OS
+#include <malloc.h>
+#endif
 
 #define SECTOR_COUNT 4
 
@@ -23,7 +26,13 @@ Allocator allocator;
 static ExitCode createAllocationSector(AllocationSector *s, uint sizePerElement)
 {
     s->sizePerElement = sizePerElement;
+
+#ifndef OS
     s->buffer = malloc(sizePerElement * 64);
+#else
+#error This has not been implemented yet
+#endif
+
     if (!s->buffer)
         return FAILURE;
     s->memoryMap = 0;
@@ -91,6 +100,7 @@ void *alloc(uint size)
             return allocInSector(&allocator.sectors[i]);
         }
     }
+    return NULL;
 }
 ExitCode freeAlloc(void *ptr)
 {

@@ -26,4 +26,10 @@ int main()
     fileSystem = NULL;
 
     allocator_dispose();
+
+#ifdef OS
+    while (true)
+    {
+    }
+#endif
 }

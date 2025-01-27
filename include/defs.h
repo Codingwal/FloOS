@@ -10,15 +10,23 @@ typedef long long unsigned int uint64;
 #define true 1
 #define false 0
 #endif
+
 #ifndef NULL
 #define NULL 0
 #endif
+
+enum
+{
+    PERIPHERAL_BASE = 0xFE000000,
+};
 
 typedef enum
 {
     SUCCESS = 0,
     FAILURE = 1,
 } ExitCode;
+
+// Useful standard macros
 
 // Counts the number of args
 #define NARGS_SEQ(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
