@@ -26,6 +26,10 @@ typedef enum
     FAILURE = 1,
 } ExitCode;
 
+#define RETURN_ON_FAILURE(x) \
+    if (x != SUCCESS)        \
+        return FAILURE;
+
 // Useful standard macros
 
 // Counts the number of args

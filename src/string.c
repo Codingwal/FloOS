@@ -37,7 +37,7 @@ ExitCode string_copy(char *dest, const char *src)
 
 int string_tokenize(char **destArr, char *str, char delimeter, uint maxTokenCount)
 {
-    if (destArr == NULL || str == NULL || delimeter == '\0')
+    if (!destArr || !str || delimeter == '\0')
         return -1;
 
     for (uint i = 0; i < maxTokenCount; i++)

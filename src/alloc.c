@@ -30,7 +30,8 @@ static ExitCode createAllocationSector(AllocationSector *s, uint sizePerElement)
 #ifndef OS
     s->buffer = malloc(sizePerElement * 64);
 #else
-#error This has not been implemented yet
+    // This has not been implemented yet
+    return FAILURE;
 #endif
 
     if (!s->buffer)
@@ -66,14 +67,10 @@ static ExitCode freeInSector(AllocationSector *s, byte *addr)
 
 ExitCode allocator_init()
 {
-    if (createAllocationSector(&allocator.sectors[0], 8) == FAILURE)
-        return FAILURE;
-    if (createAllocationSector(&allocator.sectors[1], 32) == FAILURE)
-        return FAILURE;
-    if (createAllocationSector(&allocator.sectors[2], 128) == FAILURE)
-        return FAILURE;
-    if (createAllocationSector(&allocator.sectors[3], 512) == FAILURE)
-        return FAILURE;
+    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[0], 8))
+    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[1], 32))
+    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[2], 128))
+    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[3], 512))
     return SUCCESS;
 }
 ExitCode allocator_dispose()
@@ -84,7 +81,8 @@ ExitCode allocator_dispose()
 #ifndef OS
         free(allocator.sectors[i].buffer);
 #else
-#error This has not been implemented yet
+        // This has not been implemented yet
+        return FAILURE;
 #endif
 
         if (allocator.sectors[i].memoryMap != 0)

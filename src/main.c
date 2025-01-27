@@ -17,7 +17,7 @@ int main()
     fileSystem_createFileInfo(fileSystem, "user/documents/test.txt");
 
     // Delete "user/documents"
-    if (fileSystem_deleteFileInfo(fileSystem, "user/documents", true) == FAILURE)
+    if (fileSystem_deleteFileInfo(fileSystem, "user/documents", true) != SUCCESS)
         print("Failed to delete user/documents\n");
 
     fileSystem_printAllFileInfos(fileSystem);

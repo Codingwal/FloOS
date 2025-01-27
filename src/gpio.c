@@ -44,9 +44,7 @@ ExitCode gpio_function(uint pinNumber, uint value) { return gpio_call(pinNumber,
 
 ExitCode gpio_useAsAlt5(uint pinNumber)
 {
-    if (gpio_pull(pinNumber, PULL_NONE) == FAILURE)
-        return FAILURE;
-    if (gpio_function(pinNumber, GPIO_FUNCTION_ALT5) == FAILURE)
-        return FAILURE;
+    RETURN_ON_FAILURE(gpio_pull(pinNumber, PULL_NONE))
+    RETURN_ON_FAILURE(gpio_function(pinNumber, GPIO_FUNCTION_ALT5))
     return SUCCESS;
 }

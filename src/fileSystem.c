@@ -39,8 +39,7 @@ static ExitCode fileSystem_printFileAndChildren(const FileInfo *file, uint inden
         indentation++;
         while (file)
         {
-            if (fileSystem_printFileAndChildren(file, indentation) == FAILURE)
-                return FAILURE;
+            RETURN_ON_FAILURE(fileSystem_printFileAndChildren(file, indentation))
             file = file->next;
         }
     }
@@ -107,7 +106,7 @@ FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *name)
     char *nameCopy = alloc(string_length(name));
     if (!nameCopy)
         return NULL;
-    if (string_copy(nameCopy, name) == FAILURE)
+    if (string_copy(nameCopy, name) != SUCCESS)
         goto error;
 
     char *tokens[10];
@@ -137,8 +136,7 @@ static ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
     FileInfo *child = file->children;
     while (child)
     {
-        if (fileSystem_deleteFileInfoAndChildren(child) == FAILURE)
-            return FAILURE;
+        RETURN_ON_FAILURE(fileSystem_deleteFileInfoAndChildren(child))
         child = child->next;
     }
     freeAlloc(file->name);
@@ -271,8 +269,7 @@ error_free1:
 }
 ExitCode fileSystem_dispose(FileSystem *fs)
 {
-    if (fileSystem_deleteFileInfoAndChildren(fs->root) == FAILURE)
-        return FAILURE;
-    freeAlloc(fs);
+    RETURN_ON_FAILURE(fileSystem_deleteFileInfoAndChildren(fs->root))
+    RETURN_ON_FAILURE(freeAlloc(fs));
     return SUCCESS;
 }

@@ -2,7 +2,7 @@
 
 #include "defs.h"
 
-void uart_init();
+ExitCode uart_init();
 
 ExitCode print(const char *str);
 ExitCode printChar(char c);

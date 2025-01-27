@@ -24,7 +24,7 @@ enum
 
 #define AUX_MU_BAUD(baud) ((AUX_UART_CLOCK / (baud * 8)) - 1)
 
-void uart_init()
+ExitCode uart_init()
 {
     mmio_write(AUX_ENABLES, 1); // enable UART1
     mmio_write(AUX_MU_IER_REG, 0);
@@ -34,9 +34,10 @@ void uart_init()
     mmio_write(AUX_MU_IER_REG, 0);
     mmio_write(AUX_MU_IIR_REG, 0xC6); // disable interrupts
     mmio_write(AUX_MU_BAUD_REG, AUX_MU_BAUD(115200));
-    gpio_useAsAlt5(14);
-    gpio_useAsAlt5(15);
+    RETURN_ON_FAILURE(gpio_useAsAlt5(14))
+    RETURN_ON_FAILURE(gpio_useAsAlt5(15))
     mmio_write(AUX_MU_CNTL_REG, 3); // enable RX/TX
+    return SUCCESS;
 }
 
 #ifdef OS
@@ -59,8 +60,9 @@ ExitCode print(const char *str)
     while (*str != '\0')
     {
         if (*str == '\n')
-            printChar('\r');
-        printChar(*str++);
+            RETURN_ON_FAILURE(printChar('\r'))
+
+        RETURN_ON_FAILURE(printChar(*str++))
     }
     return SUCCESS;
 }

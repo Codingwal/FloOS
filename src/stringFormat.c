@@ -2,10 +2,6 @@
 #include "io.h"
 #include "string.h"
 
-// ExitCode print_ic(const char *str, int i, char c)
-// {
-//     print_i(str, i);
-// }
 ExitCode intToString(char *dest, int value, int base)
 {
     if (!dest)
@@ -37,7 +33,7 @@ ExitCode intToString(char *dest, int value, int base)
 
     if (isNegative)
         dest[i++] = '-';
-    string_reverse(dest, i);
+    RETURN_ON_FAILURE(string_reverse(dest, i))
 
     dest[i] = '\0';
     return SUCCESS;
@@ -53,14 +49,12 @@ ExitCode print_(const char *str, uint argc, int64 *argv)
     {
         if (*str != '%')
         {
-            if (printChar(*str) == FAILURE)
-                return FAILURE;
+            RETURN_ON_FAILURE(printChar(*str))
             continue;
         }
         if (*++str == '%') // double '%'
         {
-            if (printChar('%') == FAILURE)
-                return FAILURE;
+            RETURN_ON_FAILURE(printChar('%'))
             continue;
         }
 
@@ -73,18 +67,14 @@ ExitCode print_(const char *str, uint argc, int64 *argv)
         case 'd':
         case 'i':
             char tmp[50];
-            if (intToString(tmp, (int)arg, 10) == FAILURE)
-                return FAILURE;
-            if (print(tmp) == FAILURE)
-                return FAILURE;
+            RETURN_ON_FAILURE(intToString(tmp, (int)arg, 10))
+            RETURN_ON_FAILURE(print(tmp))
             break;
         case 'c':
-            if (printChar((char)arg) == FAILURE)
-                return FAILURE;
+            RETURN_ON_FAILURE(printChar((char)arg))
             break;
         case 's':
-            if (print((char *)arg) == FAILURE)
-                return FAILURE;
+            RETURN_ON_FAILURE(print((char *)arg))
             break;
         default:
             return FAILURE;
