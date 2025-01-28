@@ -67,6 +67,11 @@ ExitCode print(const char *str)
     return SUCCESS;
 }
 
+ExitCode readLine(char *dest, uint maxCharCount)
+{
+    return FAILURE_NOT_IMPLEMENTED;
+}
+
 #else
 
 ExitCode print(const char *str)
@@ -84,6 +89,13 @@ ExitCode printChar(char c)
         return FAILURE;
     else
         return SUCCESS;
+}
+
+ExitCode readLine(char *dest, uint maxCharCount)
+{
+    if (!fgets(dest, maxCharCount, stdin))
+        return FAILURE;
+    return SUCCESS;
 }
 
 #endif
