@@ -3,6 +3,7 @@
 #include "alloc.h"
 #include "stringFormat.h"
 #include "io.h"
+#include "terminal.h"
 
 int main()
 {
@@ -10,10 +11,7 @@ int main()
     if (allocator_init() != SUCCESS)
         goto end;
 
-    char str[200];
-    if (readLine(str, 200) != SUCCESS)
-        goto end;
-    PRINT("You wrote: %s", str);
+    terminal_run();
 
 end:
     allocator_dispose();
