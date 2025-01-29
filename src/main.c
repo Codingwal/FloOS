@@ -11,10 +11,14 @@ int main()
     if (allocator_init() != SUCCESS)
         goto end;
 
-    terminal_run();
+    FileSystem *fs = fileSystem_create();
+
+    terminal_run(fs);
+
+    fileSystem_dispose(fs);
+    allocator_dispose();
 
 end:
-    allocator_dispose();
 #ifdef OS
     while (true)
     {

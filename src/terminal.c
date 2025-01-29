@@ -2,8 +2,9 @@
 #include "stringFormat.h"
 #include "string.h"
 #include "io.h"
+#include "fileSystem.h"
 
-void terminal_run()
+void terminal_run(FileSystem *fs)
 {
     char str[200];
     while (true)
@@ -13,13 +14,13 @@ void terminal_run()
         str[string_length(str) - 1] = '\0'; // Remove "\r\n" at the end of the string
 
         // Tokenize input str
-        char *tokenArr[20];
-        int tokenCount = string_tokenize(tokenArr, str, ' ', 20);
-        if (tokenCount < 1)
+        char *args[20];
+        int argc = string_tokenize(args, str, ' ', 20);
+        if (argc < 1)
             return;
 
         // Find command (first argument)
-        char *cmd = tokenArr[0];
+        char *cmd = args[0];
         if (string_compare(cmd, "exit"))
         {
             print("Exiting application.\n");
@@ -27,7 +28,17 @@ void terminal_run()
         }
         else if (string_compare(cmd, "mkdir"))
         {
-            print("Not implemented!\n");
+            if (argc != 2)
+                print("Expected 2 arguments (\"mkdir <fullPath>\").\n");
+            else
+            {
+                if (!fileSystem_createFileInfo(fs, args[1])) // Always failes
+                    PRINT("Failed to create file \'%s\'", args[1]);
+            }
+        }
+        else if (string_compare(cmd, "lsall"))
+        {
+            fileSystem_printAllFileInfos(fs);
         }
         else
         {

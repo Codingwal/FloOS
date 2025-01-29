@@ -1,3 +1,5 @@
 #pragma once
 
-void terminal_run();
+#include "fileSystem.h"
+
+void terminal_run(FileSystem *fs);
