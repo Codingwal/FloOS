@@ -19,15 +19,13 @@ _start:
     
     // Clean the BSS section
     ldr x1, = __bss_start
-    ldr x2, =__bss_size
-3:
-    cbz x2, 4f
+    ldr w2, = __bss_size
+3:  cbz w2, 4f
     str xzr, [x1], #8   // xzr is the zero register
-    sub x2, x2, #1
-    cbnz x2, 3b
+    sub w2, w2, #1
+    cbnz w2, 3b
 
     // Jump to main() in C
-4:
-    bl main // Call main()
+4:  bl main // Call main()
     b 1b    // Halt in case it returns (it shouldn't)
 
