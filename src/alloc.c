@@ -83,7 +83,6 @@ void *alloc(uint size)
 {
     if (size == 0 || !allocator.initialized)
         return NULL;
-
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
         if (size < allocator.sectors[i].sizePerElement)

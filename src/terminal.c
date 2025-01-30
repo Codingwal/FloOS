@@ -4,45 +4,61 @@
 #include "io.h"
 #include "fileSystem.h"
 
+void terminal_execCmd(char *str, FileSystem *fs)
+{
+    // Tokenize input str
+    char *args[20];
+    int argc = string_tokenize(args, str, ' ', 20);
+    if (argc < 1)
+        return;
+
+    // Find command (first argument)
+    char *cmd = args[0];
+    if (string_compare(cmd, "mkdir"))
+    {
+        if (argc != 2)
+            print("Expected 2 arguments (\"mkdir <fullPath>\").\n");
+        else
+        {
+            if (!fileSystem_createFileInfo(fs, args[1]))
+                PRINT("Failed to create file \"%s\"", args[1])
+            else
+                PRINT("Created file \"%s\"", args[1])
+        }
+    }
+    else if (string_compare(cmd, "ls"))
+    {
+        bool recursive = false;
+        for (uint i = 1; i < argc; i++)
+        {
+            if (args[i][0] != '-')
+            {
+                print("Invalid argument, expected option (-<option>).\n");
+                return;
+            }
+            if (args[i][1] == 'r')
+                recursive = true;
+            else
+                PRINT("Invalid option '%c'", args[i][1])
+        }
+        if (recursive)
+            fileSystem_printAllFileInfos(fs);
+        else
+            print("Can't print file system non-recursive (Not implemented).\n");
+    }
+    else
+    {
+        PRINT("Unknown command \"%s\".\n", cmd)
+    }
+}
 void terminal_run(FileSystem *fs)
 {
+    print("Running terminal.\n");
     char str[200];
     while (true)
     {
+        print("> ");
         readLine(str, 200);
-
-        str[string_length(str) - 1] = '\0'; // Remove "\r\n" at the end of the string
-
-        // Tokenize input str
-        char *args[20];
-        int argc = string_tokenize(args, str, ' ', 20);
-        if (argc < 1)
-            return;
-
-        // Find command (first argument)
-        char *cmd = args[0];
-        if (string_compare(cmd, "exit"))
-        {
-            print("Exiting application.\n");
-            return;
-        }
-        else if (string_compare(cmd, "mkdir"))
-        {
-            if (argc != 2)
-                print("Expected 2 arguments (\"mkdir <fullPath>\").\n");
-            else
-            {
-                if (!fileSystem_createFileInfo(fs, args[1])) // Always failes
-                    PRINT("Failed to create file \'%s\'", args[1]);
-            }
-        }
-        else if (string_compare(cmd, "lsall"))
-        {
-            fileSystem_printAllFileInfos(fs);
-        }
-        else
-        {
-            PRINT("Unknown command \"%s\".\n", cmd);
-        }
+        terminal_execCmd(str, fs);
     }
 }
