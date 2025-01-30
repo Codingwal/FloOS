@@ -49,6 +49,8 @@ ExitCode print_(const char *str, uint argc, int64 *argv)
     {
         if (*str != '%')
         {
+            if (*str == '\n')
+                RETURN_ON_FAILURE(printChar('\r'));
             RETURN_ON_FAILURE(printChar(*str))
             continue;
         }
