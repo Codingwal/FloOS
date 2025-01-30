@@ -36,6 +36,7 @@ ExitCode uart_init()
 }
 
 static bool uart_isWriteByteReady() { return mmio_read(AUX_MU_LSR_REG) & 0x20; }
+static bool uart_isReadByteReady() { return mmio_read(AUX_MU_LSR_REG) & 0x01; }
 
 ExitCode printChar(char c)
 {
@@ -45,6 +46,13 @@ ExitCode printChar(char c)
     mmio_write(AUX_MU_IO_REG, (uint)c);
     return SUCCESS;
 }
+char readChar()
+{
+    while (!uart_isReadByteReady())
+    {
+    }
+    return (char)mmio_read(AUX_MU_IO_REG);
+}
 
 ExitCode print(const char *str)
 {
@@ -52,9 +60,6 @@ ExitCode print(const char *str)
         return FAILURE;
     while (*str)
     {
-        if (*str == '\n')
-            RETURN_ON_FAILURE(printChar('\r'))
-
         RETURN_ON_FAILURE(printChar(*str++))
     }
     return SUCCESS;
@@ -62,5 +67,15 @@ ExitCode print(const char *str)
 
 ExitCode readLine(char *dest, uint maxCharCount)
 {
-    return FAILURE_NOT_IMPLEMENTED;
+    for (uint i = 0; i < maxCharCount; i++)
+    {
+        char c = readChar();
+        if (c == '\n')
+        {
+            dest[i] = '\0';
+            return SUCCESS;
+        }
+        dest[i] = c;
+    }
+    return SUCCESS;
 }

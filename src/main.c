@@ -7,12 +7,10 @@ int main()
 
     print("Hello, World!\n");
 
-    int i = 0;
+    char str[500];
     while (true)
     {
-        PRINT("%d; ", i);
-        i++;
-        if (i % 10 == 0)
-            print("\n");
+        readLine(str, 500);
+        PRINT("You wrote: \"%s\"\n> ", str);
     }
 }

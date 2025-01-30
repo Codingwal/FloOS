@@ -20,7 +20,7 @@ enum
     PERIPHERAL_BASE = 0xFE000000,
 };
 
-typedef enum
+typedef enum ExitCode
 {
     SUCCESS = 0,
     FAILURE = 1,

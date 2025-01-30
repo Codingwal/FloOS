@@ -4,6 +4,7 @@
 
 ExitCode uart_init();
 
-ExitCode print(const char *str);
 ExitCode printChar(char c);
+ExitCode print(const char *str);
+char readChar();
 ExitCode readLine(char *dest, uint maxCharCount);
