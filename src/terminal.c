@@ -21,9 +21,9 @@ void terminal_execCmd(char *str, FileSystem *fs)
         else
         {
             if (!fileSystem_createFileInfo(fs, args[1]))
-                PRINT("Failed to create file \"%s\"", args[1])
+                PRINT("Failed to create file \"%s\".\n", args[1])
             else
-                PRINT("Created file \"%s\"", args[1])
+                PRINT("Created file \"%s\".\n", args[1])
         }
     }
     else if (string_compare(cmd, "ls"))
@@ -39,12 +39,13 @@ void terminal_execCmd(char *str, FileSystem *fs)
             if (args[i][1] == 'r')
                 recursive = true;
             else
-                PRINT("Invalid option '%c'", args[i][1])
+            {
+                PRINT("Invalid option '%c'.\n", args[i][1])
+                return;
+            }
         }
-        if (recursive)
-            fileSystem_printAllFileInfos(fs);
-        else
-            print("Can't print file system non-recursive (Not implemented).\n");
+
+        fileSystem_listFiles(fs, "", recursive);
     }
     else
     {

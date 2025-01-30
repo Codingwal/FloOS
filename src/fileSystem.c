@@ -24,7 +24,7 @@ ExitCode fileSystem_printFileInfo(const FileInfo *file)
     PRINT("FileInfo of \"%s\": size = %d, isFolder = %d\n", file->name, file->size, (bool)file->children)
     return SUCCESS;
 }
-static ExitCode fileSystem_printFileAndChildren(const FileInfo *file, uint indentation)
+static ExitCode fileSystem_printFile(const FileInfo *file, uint indentation, bool printChildren)
 {
     if (!file)
         return NULL;
@@ -39,7 +39,12 @@ static ExitCode fileSystem_printFileAndChildren(const FileInfo *file, uint inden
         indentation++;
         while (file)
         {
-            RETURN_ON_FAILURE(fileSystem_printFileAndChildren(file, indentation))
+            if (printChildren)
+            {
+                RETURN_ON_FAILURE(fileSystem_printFile(file, indentation, true))
+            }
+            else
+                PRINT("    %s\n", file->name)
             file = file->next;
         }
     }
@@ -47,11 +52,12 @@ static ExitCode fileSystem_printFileAndChildren(const FileInfo *file, uint inden
         PRINT("%s\n", file->name)
     return SUCCESS;
 }
-ExitCode fileSystem_printAllFileInfos(const FileSystem *fs)
+ExitCode fileSystem_listFiles(const FileSystem *fs, const char *path, bool recursive)
 {
-    if (!fs)
-        return NULL;
-    return fileSystem_printFileAndChildren(fs->root, 0);
+    if (!fs || !path)
+        return FAILURE;
+    FileInfo *file = fileSystem_getFileInfo(fs, path);
+    return fileSystem_printFile(file, 0, recursive);
 }
 static FileInfo *fileSystem_allocFile()
 {
