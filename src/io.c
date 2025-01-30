@@ -1,11 +1,6 @@
 #include "io.h"
 #include "gpio.h"
 
-#ifndef OS
-#include <stdarg.h>
-#include <stdio.h>
-#endif
-
 enum
 {
     AUX_BASE = PERIPHERAL_BASE + 0x215000,
@@ -40,9 +35,8 @@ ExitCode uart_init()
     return SUCCESS;
 }
 
-#ifdef OS
-
 static bool uart_isWriteByteReady() { return mmio_read(AUX_MU_LSR_REG) & 0x20; }
+static bool uart_isReadByteReady() { return mmio_read(AUX_MU_LSR_REG) & 0x01; }
 
 ExitCode printChar(char c)
 {
@@ -52,16 +46,20 @@ ExitCode printChar(char c)
     mmio_write(AUX_MU_IO_REG, (uint)c);
     return SUCCESS;
 }
+char readChar()
+{
+    while (!uart_isReadByteReady())
+    {
+    }
+    return (char)mmio_read(AUX_MU_IO_REG);
+}
 
 ExitCode print(const char *str)
 {
     if (!str)
         return FAILURE;
-    while (*str != '\0')
+    while (*str)
     {
-        if (*str == '\n')
-            RETURN_ON_FAILURE(printChar('\r'))
-
         RETURN_ON_FAILURE(printChar(*str++))
     }
     return SUCCESS;
@@ -69,33 +67,15 @@ ExitCode print(const char *str)
 
 ExitCode readLine(char *dest, uint maxCharCount)
 {
-    return FAILURE_NOT_IMPLEMENTED;
-}
-
-#else
-
-ExitCode print(const char *str)
-{
-    if (!str || *str == '\0')
-        return FAILURE;
-    if (printf(str) < 0)
-        return FAILURE;
-    else
-        return SUCCESS;
-}
-ExitCode printChar(char c)
-{
-    if (putchar(c) == EOF)
-        return FAILURE;
-    else
-        return SUCCESS;
-}
-
-ExitCode readLine(char *dest, uint maxCharCount)
-{
-    if (!fgets(dest, maxCharCount, stdin))
-        return FAILURE;
+    for (uint i = 0; i < maxCharCount; i++)
+    {
+        char c = readChar();
+        if (c == '\n')
+        {
+            dest[i] = '\0';
+            return SUCCESS;
+        }
+        dest[i] = c;
+    }
     return SUCCESS;
 }
-
-#endif

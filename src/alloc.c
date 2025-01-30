@@ -3,10 +3,6 @@
 #include "stringFormat.h"
 #include "io.h"
 
-#ifndef OS
-#include <malloc.h>
-#endif
-
 #define SECTOR_COUNT 4
 
 typedef struct AllocationSector
@@ -23,20 +19,16 @@ typedef struct Allocator
 } Allocator;
 
 Allocator allocator;
+byte buffer[1024 * 1024];
 
-static ExitCode createAllocationSector(AllocationSector *s, uint sizePerElement)
+static ExitCode createAllocationSector(AllocationSector *s, uint sizePerElement, uint *idx)
 {
-    s->sizePerElement = sizePerElement;
-
-#ifndef OS
-    s->buffer = malloc(sizePerElement * 64);
-#else
-    return FAILURE_NOT_IMPLEMENTED;
-#endif
-
-    if (!s->buffer)
+    if (*idx + sizePerElement * 64 > sizeof(buffer))
         return FAILURE;
+    s->buffer = &buffer[*idx];
+    s->sizePerElement = sizePerElement;
     s->memoryMap = 0;
+    *idx += sizePerElement * 64;
     return SUCCESS;
 }
 static void *allocInSector(AllocationSector *s)
@@ -67,10 +59,11 @@ static ExitCode freeInSector(AllocationSector *s, byte *addr)
 
 ExitCode allocator_init()
 {
-    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[0], 8))
-    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[1], 32))
-    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[2], 128))
-    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[3], 512))
+    uint idx = 0;
+    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[0], 8, &idx))
+    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[1], 32, &idx))
+    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[2], 128, &idx))
+    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[3], 512, &idx))
     allocator.initialized = true;
     return SUCCESS;
 }
@@ -81,13 +74,6 @@ ExitCode allocator_dispose()
 
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
-
-#ifndef OS
-        free(allocator.sectors[i].buffer);
-#else
-        return FAILURE_NOT_IMPLEMENTED;
-#endif
-
         if (allocator.sectors[i].memoryMap != 0)
             print("Found memory leak(s)!\n");
     }
