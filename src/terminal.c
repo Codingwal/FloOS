@@ -14,10 +14,10 @@ void terminal_execCmd(char *str, FileSystem *fs)
 
     // Find command (first argument)
     char *cmd = args[0];
-    if (string_compare(cmd, "mkdir"))
+    if (string_compare(cmd, "mk"))
     {
         if (argc != 2)
-            print("Expected 2 arguments (\"mkdir <fullPath>\").\n");
+            print("Expected 2 arguments (\"mk <fullPath>\").\n");
         else
         {
             if (!fileSystem_createFileInfo(fs, args[1]))
@@ -36,16 +36,59 @@ void terminal_execCmd(char *str, FileSystem *fs)
                 print("Invalid argument, expected option (-<option>).\n");
                 return;
             }
-            if (args[i][1] == 'r')
-                recursive = true;
-            else
+            switch (args[i][1])
             {
+            case 'r':
+                recursive = true;
+                break;
+            default:
                 PRINT("Invalid option '%c'.\n", args[i][1])
                 return;
             }
         }
 
         fileSystem_listFiles(fs, "", recursive);
+    }
+    else if (string_compare(cmd, "rm"))
+    {
+        if (argc < 2)
+        {
+            print("Expected at least 2 arguments (\"rm <fullPath>\").\n");
+        }
+
+        bool recursive = false;
+        char *path = NULL;
+        for (uint i = 1; i < argc; i++)
+        {
+            if (args[i][0] == '-')
+            {
+                switch (args[i][1])
+                {
+                case 'r':
+                    recursive = true;
+                    break;
+                default:
+                    PRINT("Invalid option '%c'.\n", args[i][1])
+                    return;
+                }
+            }
+            else
+            {
+                path = args[i];
+            }
+        }
+        if (!path)
+            print("You must specify the file to delete.\n");
+        if (fileSystem_deleteFileInfo(fs, path, recursive) != SUCCESS)
+            PRINT("Failed to delete file \"%s\".\n", args[1])
+        else
+            PRINT("Deleted file \"%s\".\n", args[1])
+    }
+    else if (string_compare(cmd, "logo"))
+    {
+        print("\n");
+        print(logo);
+        print("\n");
     }
     else
     {
