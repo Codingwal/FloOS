@@ -3,7 +3,7 @@ OFILES = $(CFILES:.c=.o)
 GCCPATH = arm-gnu-toolchain-14.2.rel1-mingw-w64-x86_64-aarch64-none-elf/bin
 
 GCCFLAGS-OS = -ffreestanding -nostdinc -nostdlib -nostartfiles -DOS=1
-GCCFLAGS = -Iinclude -Wall -O2
+GCCFLAGS = -Iinclude -Wall -O2 -Werror -Wextra
 
 
 # Compile as app

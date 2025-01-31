@@ -24,7 +24,11 @@ int string_tokenize(char **destArr, char *str, char delimeter, uint maxTokenCoun
 
 /// @brief Finds the first occurence of c in str.
 /// @return A pointer to the first occurence of c or NULL if c isn't present.
-char *string_find(const char *str, char c);
+char *string_find(const char *str, char seq);
+
+/// @brief Finds the first occurence of seq in str.
+/// @return A pointer to the first occurence of seq or NULL if c isn't present.
+char *string_findString(const char *str, const char *seq);
 
 /// @brief Finds the first occurence of c in str, starting from the end.
 /// @return A pointer to the first occurence of c or NULL if c isn't present.
@@ -35,4 +39,6 @@ char *string_findFromBack(const char *str, uint strLength, char c);
 char *string_substring(const char *str, uint length);
 
 /// @brief Reverses the string
-ExitCode string_reverse(char*str, uint length);
+ExitCode string_reverse(char *str, uint length);
+
+ExitCode string_append(char *dest, const char *src);

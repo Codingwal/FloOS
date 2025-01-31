@@ -3,8 +3,76 @@
 #include "string.h"
 #include "io.h"
 #include "fileSystem.h"
+#include "logo.h"
+#include "terminal_fileSystem.h"
 
-void terminal_execCmd(char *str, FileSystem *fs)
+static char *simplifyPath(char *path)
+{
+
+    uint len = string_length(path);
+    path[len] = '/';
+    path[len + 1] = '\0';
+
+    PRINT("Simplifiying path \"%s\"\n", path)
+
+    // Handle '.'
+    for (uint i = 0; path[i] != '\0'; i++)
+    {
+        if (path[i] != '.')
+            continue;
+        if (i != 0 && path[i - 1] != '/')
+            continue;
+        if (path[i + 1] != '\0' && path[i + 1] != '/')
+            continue;
+        path = &path[i + 1];
+    }
+
+    // Handle "\"
+    for (uint i = 0; path[i] != '\0'; i++)
+    {
+        if (path[i] == '\\')
+            path[i] = '/';
+    }
+
+    // Handle "//"
+    for (uint i = 0; path[i] != '\0'; i++)
+    {
+        if (path[i] == '/' && path[i + 1] == '/')
+        {
+            string_copy(&path[i], &path[i + 1]);
+        }
+    }
+
+    // Handle ".."
+    char *ptr = string_findString(path, "/../");
+    while (ptr)
+    {
+        char *p = ptr;
+        while (*p != '/')
+        {
+            p--;
+        }
+        string_copy(p, ptr);
+
+        ptr = string_findString(ptr + 1, "/../");
+    }
+
+    // Handle "/" as first token
+    if (path[0] == '/')
+        path += 1;
+
+    // Handle "/" as last token
+    len = string_length(path);
+    if (path[len - 1] == '/')
+    {
+        path[len - 1] = '\0';
+    }
+
+    PRINT("Simplified path to \"%s\".\n", path)
+
+    return path;
+}
+static void terminal_execCmd(char *str, FileSystem *fs, char *path)
 {
     // Tokenize input str
     char *args[20];
@@ -16,73 +84,35 @@ void terminal_execCmd(char *str, FileSystem *fs)
     char *cmd = args[0];
     if (string_compare(cmd, "mk"))
     {
-        if (argc != 2)
-            print("Expected 2 arguments (\"mk <fullPath>\").\n");
-        else
-        {
-            if (!fileSystem_createFileInfo(fs, args[1]))
-                PRINT("Failed to create file \"%s\".\n", args[1])
-            else
-                PRINT("Created file \"%s\".\n", args[1])
-        }
+        terminal_mk(args, argc, fs, path);
     }
     else if (string_compare(cmd, "ls"))
     {
-        bool recursive = false;
-        for (uint i = 1; i < argc; i++)
-        {
-            if (args[i][0] != '-')
-            {
-                print("Invalid argument, expected option (-<option>).\n");
-                return;
-            }
-            switch (args[i][1])
-            {
-            case 'r':
-                recursive = true;
-                break;
-            default:
-                PRINT("Invalid option '%c'.\n", args[i][1])
-                return;
-            }
-        }
-
-        fileSystem_listFiles(fs, "", recursive);
+        terminal_ls(args, argc, fs, path);
     }
     else if (string_compare(cmd, "rm"))
     {
-        if (argc < 2)
-        {
-            print("Expected at least 2 arguments (\"rm <fullPath>\").\n");
-        }
+        terminal_rm(args, argc, fs, path);
+    }
+    else if (string_compare(cmd, "cd"))
+    {
+        if (argc != 2)
+            print("Expected 2 arguments (\"cd <path>\").\n");
 
-        bool recursive = false;
-        char *path = NULL;
-        for (uint i = 1; i < argc; i++)
+        char newPathArr[200];
+        char *newPath = &newPathArr[0];
+
+        string_copy(newPath, path);
+        string_append(newPath, "/");
+        string_append(newPath, args[1]);
+        newPath = simplifyPath(newPath);
+
+        if (!fileSystem_getFileInfo(fs, newPath))
         {
-            if (args[i][0] == '-')
-            {
-                switch (args[i][1])
-                {
-                case 'r':
-                    recursive = true;
-                    break;
-                default:
-                    PRINT("Invalid option '%c'.\n", args[i][1])
-                    return;
-                }
-            }
-            else
-            {
-                path = args[i];
-            }
+            print("Path doesn't exist.\n");
+            return;
         }
-        if (!path)
-            print("You must specify the file to delete.\n");
-        if (fileSystem_deleteFileInfo(fs, path, recursive) != SUCCESS)
-            PRINT("Failed to delete file \"%s\".\n", args[1])
-        else
-            PRINT("Deleted file \"%s\".\n", args[1])
+        string_copy(path, newPath);
     }
     else if (string_compare(cmd, "logo"))
     {
@@ -98,11 +128,13 @@ void terminal_execCmd(char *str, FileSystem *fs)
 void terminal_run(FileSystem *fs)
 {
     print("Running terminal.\n");
+    char path[200];
+    path[0] = '\0';
     char str[200];
     while (true)
     {
-        print("> ");
+        PRINT("%s> ", path)
         readLine(str, 200);
-        terminal_execCmd(str, fs);
+        terminal_execCmd(str, fs, path);
     }
 }

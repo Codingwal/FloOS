@@ -121,7 +121,7 @@ FileInfo *fileSystem_getFileInfo(const FileSystem *fs, const char *name)
         goto error;
 
     FileInfo *file = fs->root;
-    for (uint i = 0; i < tokenCount; i++)
+    for (uint i = 0; i < (uint)tokenCount; i++)
     {
         file = fileSystem_getChildFileInfo(file, tokens[i]);
         if (!file)

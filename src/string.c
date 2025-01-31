@@ -63,6 +63,15 @@ char *string_find(const char *str, char c)
     }
     return (char *)str;
 }
+char *string_findString(const char *str, const char *seq)
+{
+    for (uint i = 0; str[i] != '\0'; i++)
+    {
+        if (string_compare(&str[i], seq))
+            return (char *)&str[i];
+    }
+    return NULL;
+}
 
 char *string_findFromBack(const char *str, uint strLength, char c)
 {
@@ -111,4 +120,9 @@ ExitCode string_reverse(char *str, uint length)
         str++;
     }
     return SUCCESS;
+}
+
+ExitCode string_append(char *dest, const char *src)
+{
+    return string_copy(dest + string_length(dest), src);
 }
