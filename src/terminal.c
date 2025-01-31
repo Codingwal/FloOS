@@ -7,12 +7,9 @@
 
 static char *simplifyPath(char *path)
 {
-
     uint len = string_length(path);
     path[len] = '/';
     path[len + 1] = '\0';
-
-    PRINT("Simplifiying path \"%s\"\n", path)
 
     // Handle '.'
     for (uint i = 0; path[i] != '\0'; i++)
@@ -46,12 +43,12 @@ static char *simplifyPath(char *path)
     char *ptr = string_findString(path, "/../");
     while (ptr)
     {
-        char *p = ptr;
-        while (*p != '/')
+        char *p = ptr - 1;
+        while (*p != '/' && p > path)
         {
             p--;
         }
-        string_copy(p, ptr);
+        string_copy(p, ptr + 4);
 
         ptr = string_findString(ptr + 1, "/../");
     }
@@ -66,8 +63,6 @@ static char *simplifyPath(char *path)
     {
         path[len - 1] = '\0';
     }
-
-    PRINT("Simplified path to \"%s\".\n", path)
 
     return path;
 }
@@ -135,6 +130,11 @@ static void terminal_execCmd(char *str, FileSystem *fs, char *path)
 
         if (cmd == MK)
         {
+            if (recursive)
+            {
+                print("Invalid modifier \"-r\"\n");
+                return;
+            }
             if (!fileSystem_createFileInfo(fs, filePath))
                 PRINT("Failed to create file \"%s\".\n", filePath)
             else
@@ -154,6 +154,11 @@ static void terminal_execCmd(char *str, FileSystem *fs, char *path)
         }
         else if (cmd == CD)
         {
+            if (recursive)
+            {
+                print("Invalid modifier \"-r\"\n");
+                return;
+            }
             if (!fileSystem_getFileInfo(fs, filePath))
             {
                 print("Path doesn't exist.\n");
