@@ -4,7 +4,6 @@
 #include "io.h"
 #include "fileSystem.h"
 #include "logo.h"
-#include "terminal_fileSystem.h"
 
 static char *simplifyPath(char *path)
 {
@@ -72,6 +71,17 @@ static char *simplifyPath(char *path)
 
     return path;
 }
+typedef enum Command
+{
+    NONE,
+
+    MK,
+    RM,
+    LS,
+    CD,
+
+    LOGO,
+} Command;
 static void terminal_execCmd(char *str, FileSystem *fs, char *path)
 {
     // Tokenize input str
@@ -80,41 +90,79 @@ static void terminal_execCmd(char *str, FileSystem *fs, char *path)
     if (argc < 1)
         return;
 
-    // Find command (first argument)
-    char *cmd = args[0];
-    if (string_compare(cmd, "mk"))
-    {
-        terminal_mk(args, argc, fs, path);
-    }
-    else if (string_compare(cmd, "ls"))
-    {
-        terminal_ls(args, argc, fs, path);
-    }
-    else if (string_compare(cmd, "rm"))
-    {
-        terminal_rm(args, argc, fs, path);
-    }
-    else if (string_compare(cmd, "cd"))
-    {
-        if (argc != 2)
-            print("Expected 2 arguments (\"cd <path>\").\n");
+    Command cmd = NONE;
+    if (string_compare(args[0], "mk"))
+        cmd = MK;
+    else if (string_compare(args[0], "rm"))
+        cmd = RM;
+    else if (string_compare(args[0], "ls"))
+        cmd = LS;
+    else if (string_compare(args[0], "cd"))
+        cmd = CD;
+    else if (string_compare(args[0], "logo"))
+        cmd = LOGO;
 
-        char newPathArr[200];
-        char *newPath = &newPathArr[0];
+    if (cmd == MK || cmd == RM || cmd == LS || cmd == CD)
+    {
+        bool recursive = false;
+        char *fileName = NULL;
 
-        string_copy(newPath, path);
-        string_append(newPath, "/");
-        string_append(newPath, args[1]);
-        newPath = simplifyPath(newPath);
-
-        if (!fileSystem_getFileInfo(fs, newPath))
+        for (uint i = 1; i < (uint)argc; i++)
         {
-            print("Path doesn't exist.\n");
-            return;
+            if (args[i][0] == '-') // Modifier
+            {
+                switch (args[i][1])
+                {
+                case 'r':
+                    recursive = true;
+                    break;
+                default:
+                    break;
+                }
+            }
+            else // Parameter
+            {
+                fileName = args[i];
+            }
         }
-        string_copy(path, newPath);
+
+        char filePathArr[200];
+        char *filePath = &filePathArr[0];
+        string_copy(filePath, path);
+        string_append(filePath, "/");
+        string_append(filePath, fileName);
+        filePath = simplifyPath(filePath);
+
+        if (cmd == MK)
+        {
+            if (!fileSystem_createFileInfo(fs, filePath))
+                PRINT("Failed to create file \"%s\".\n", filePath)
+            else
+                PRINT("Created file \"%s\".\n", filePath)
+        }
+        else if (cmd == RM)
+        {
+            if (fileSystem_deleteFileInfo(fs, filePath, recursive) != SUCCESS)
+                PRINT("Failed to delete file \"%s\".\n", filePath)
+            else
+                PRINT("Deleted file \"%s\".\n", filePath)
+        }
+        else if (cmd == LS)
+        {
+            if (fileSystem_listFiles(fs, filePath, recursive) != SUCCESS)
+                PRINT("Failed to list files at \"%s\".\n", filePath)
+        }
+        else if (cmd == CD)
+        {
+            if (!fileSystem_getFileInfo(fs, filePath))
+            {
+                print("Path doesn't exist.\n");
+                return;
+            }
+            string_copy(path, filePath);
+        }
     }
-    else if (string_compare(cmd, "logo"))
+    else if (cmd == LOGO)
     {
         print("\n");
         print(logo);
