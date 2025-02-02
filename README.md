@@ -9,5 +9,3 @@ A baremetal operating system for a rasperry pi
     - Replace the existing kernel8.img file on the sd card
 
 ## TODO:
-- ExitCodes
-- fileName length restrictions

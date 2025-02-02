@@ -5,6 +5,11 @@
 #include "fileSystem.h"
 #include "logo.h"
 
+enum
+{
+    MAX_FILE_PATH_LENGTH = 200,
+};
+
 static char *simplifyPath(char *path)
 {
     uint len = string_length(path);
@@ -158,8 +163,13 @@ static void terminal_execCmd(char *str, FileSystem *fs, char *path)
             }
         }
 
-        char filePathArr[200];
+        char filePathArr[MAX_FILE_PATH_LENGTH];
         char *filePath = &filePathArr[0];
+        if (string_length(path) + 1 + string_length(fileName) > MAX_FILE_PATH_LENGTH)
+        {
+            PRINT("File path exceeds maximum length of %d", MAX_FILE_PATH_LENGTH)
+            return;
+        }
         string_copy(filePath, path);
         string_append(filePath, "/");
         string_append(filePath, fileName);

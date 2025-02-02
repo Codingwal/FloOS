@@ -4,6 +4,11 @@
 #include "stringFormat.h"
 #include "io.h"
 
+enum
+{
+    MAX_FILE_NAME_LENGTH = 50,
+};
+
 struct FileInfo
 {
     char *name;
@@ -232,6 +237,9 @@ FileInfo *fileSystem_createFileInfo(FileSystem *fs, const char *path)
         pathExceptName = string_substring(path, name - path);
         name++; // Don't include '/'
     }
+
+    if (string_length(name) > MAX_FILE_NAME_LENGTH)
+        return NULL;
 
     FileInfo *parent = fileSystem_getFileInfo(fs, pathExceptName);
 
