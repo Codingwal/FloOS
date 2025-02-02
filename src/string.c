@@ -67,8 +67,11 @@ char *string_findString(const char *str, const char *seq)
 {
     for (uint i = 0; str[i] != '\0'; i++)
     {
-        if (string_compare(&str[i], seq))
-            return (char *)&str[i];
+        for (uint j = 0; seq[j] == str[i + j]; j++)
+        {
+            if (seq[j + 1] == '\0')
+                return (char *)&str[i];
+        }
     }
     return NULL;
 }

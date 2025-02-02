@@ -48,9 +48,9 @@ static char *simplifyPath(char *path)
         {
             p--;
         }
-        string_copy(p, ptr + 4);
+        string_copy(p, ptr + 3);
 
-        ptr = string_findString(ptr + 1, "/../");
+        ptr = string_findString(p, "/../");
     }
 
     // Handle "/" as first token
@@ -161,7 +161,7 @@ static void terminal_execCmd(char *str, FileSystem *fs, char *path)
             }
             if (!fileSystem_getFileInfo(fs, filePath))
             {
-                print("Path doesn't exist.\n");
+                PRINT("Path \"%s\" doesn't exist.\n", filePath)
                 return;
             }
             string_copy(path, filePath);
