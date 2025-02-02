@@ -66,6 +66,43 @@ static char *simplifyPath(char *path)
 
     return path;
 }
+static const char *exitCodeToString(ExitCode exitCode)
+{
+    switch ((int)exitCode)
+    {
+    // Standard
+    case SUCCESS:
+        return "[SUCCESS]";
+    case FAILURE:
+        return "[FAILURE]";
+    case FAILURE_NOT_IMPLEMENTED:
+        return "[FAILURE] Not implemented";
+
+    // FileSystem
+    case FAILURE_INVALID_INPUT:
+        return "[FAILURE] Invalid input";
+    case FAILURE_FILE_NOT_FOUND:
+        return "[FAILURE] File not found";
+    case FAILURE_IS_FOLDER:
+        return "[FAILURE] Expected a file but found a folder";
+
+    // Unspecified
+    default:
+        if (exitCode < 10)
+            return "[FAILURE] Unspecified standard error";
+        else if (exitCode < 20)
+            return "[FAILURE] Unspecified file system error";
+        else if (exitCode < 100)
+            return "[FAILURE] Unspecified OS error";
+        else
+            return "[FAILURE] Unspecified user-defined error";
+    }
+}
+static void printExitCode(ExitCode exitCode)
+{
+    if (exitCode != SUCCESS)
+        PRINT("%s (ExitCode %d)\n", exitCodeToString(exitCode), exitCode)
+}
 typedef enum Command
 {
     NONE,
@@ -136,21 +173,17 @@ static void terminal_execCmd(char *str, FileSystem *fs, char *path)
                 return;
             }
             if (!fileSystem_createFileInfo(fs, filePath))
-                PRINT("Failed to create file \"%s\".\n", filePath)
+                printExitCode(FAILURE);
             else
-                PRINT("Created file \"%s\".\n", filePath)
+                printExitCode(SUCCESS);
         }
         else if (cmd == RM)
         {
-            if (fileSystem_deleteFileInfo(fs, filePath, recursive) != SUCCESS)
-                PRINT("Failed to delete file \"%s\".\n", filePath)
-            else
-                PRINT("Deleted file \"%s\".\n", filePath)
+            printExitCode(fileSystem_deleteFileInfo(fs, filePath, recursive));
         }
         else if (cmd == LS)
         {
-            if (fileSystem_listFiles(fs, filePath, recursive) != SUCCESS)
-                PRINT("Failed to list files at \"%s\".\n", filePath)
+            printExitCode(fileSystem_listFiles(fs, filePath, recursive));
         }
         else if (cmd == CD)
         {
@@ -161,7 +194,7 @@ static void terminal_execCmd(char *str, FileSystem *fs, char *path)
             }
             if (!fileSystem_getFileInfo(fs, filePath))
             {
-                PRINT("Path \"%s\" doesn't exist.\n", filePath)
+                printExitCode((ExitCode)FAILURE_FILE_NOT_FOUND);
                 return;
             }
             string_copy(path, filePath);

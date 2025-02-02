@@ -20,14 +20,14 @@ struct FileSystem
 ExitCode fileSystem_printFileInfo(const FileInfo *file)
 {
     if (!file)
-        return FAILURE;
+        return FAILURE_INVALID_INPUT;
     PRINT("FileInfo of \"%s\": size = %d, isFolder = %d\n", file->name, file->size, (bool)file->children)
     return SUCCESS;
 }
 static ExitCode fileSystem_printFile(const FileInfo *file, uint indentation, bool printChildren)
 {
     if (!file)
-        return NULL;
+        return FAILURE_INVALID_INPUT;
 
     for (uint i = 0; i < indentation; i++)
         print("  ");
@@ -55,7 +55,7 @@ static ExitCode fileSystem_printFile(const FileInfo *file, uint indentation, boo
 ExitCode fileSystem_listFiles(const FileSystem *fs, const char *path, bool recursive)
 {
     if (!fs || !path)
-        return FAILURE;
+        return FAILURE_INVALID_INPUT;
     FileInfo *file = fileSystem_getFileInfo(fs, path);
     return fileSystem_printFile(file, 0, recursive);
 }
@@ -137,7 +137,7 @@ error:
 static ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
 {
     if (!file)
-        return FAILURE;
+        return FAILURE_INVALID_INPUT;
 
     FileInfo *child = file->children;
     while (child)
@@ -152,14 +152,14 @@ static ExitCode fileSystem_deleteFileInfoAndChildren(FileInfo *file)
 static ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool recursive)
 {
     if (!prevNodeNextPtr || !*prevNodeNextPtr)
-        return FAILURE;
+        return FAILURE_INVALID_INPUT;
 
     FileInfo *fileToDelete = (*prevNodeNextPtr);
 
     if (fileToDelete->children) // Folder
     {
         if (!recursive)
-            return FAILURE;
+            return (ExitCode)FAILURE_IS_FOLDER;
         *prevNodeNextPtr = fileToDelete->next; // Remove fileToDelete from the linked list
         return fileSystem_deleteFileInfoAndChildren(fileToDelete);
     }
@@ -174,7 +174,7 @@ static ExitCode fileSystem_deleteFileInfoHelper(FileInfo **prevNodeNextPtr, bool
 ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recursive)
 {
     if (!fs || !path)
-        return FAILURE;
+        return FAILURE_INVALID_INPUT;
 
     const char *name = string_findFromBack(path, string_length(path), '/');
     char *pathExceptName;
@@ -195,7 +195,7 @@ ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recurs
     freeAlloc(pathExceptName);
 
     if (!parent || !parent->children)
-        return FAILURE;
+        return (ExitCode)FAILURE_FILE_NOT_FOUND;
 
     if (string_compare(parent->children->name, name))
     {
@@ -211,7 +211,7 @@ ExitCode fileSystem_deleteFileInfo(FileSystem *fs, const char *path, bool recurs
         }
         file = file->next;
     }
-    return FAILURE;
+    return (ExitCode)FAILURE_FILE_NOT_FOUND;
 }
 
 FileInfo *fileSystem_createFileInfo(FileSystem *fs, const char *path)

@@ -22,9 +22,13 @@ enum
 
 typedef enum ExitCode
 {
+    // 0 - 9: Standard
     SUCCESS = 0,
     FAILURE = 1,
-    FAILURE_NOT_IMPLEMENTED = 2,
+    FAILURE_NOT_IMPLEMENTED,
+    FAILURE_INVALID_INPUT,
+
+    // 10 - 19: FileSystem
 } ExitCode;
 
 #define RETURN_ON_FAILURE(x) \

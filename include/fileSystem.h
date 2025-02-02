@@ -2,6 +2,12 @@
 
 #include "defs.h"
 
+enum
+{
+    FAILURE_FILE_NOT_FOUND = 10,
+    FAILURE_IS_FOLDER,
+};
+
 typedef struct FileInfo FileInfo;
 typedef struct FileSystem FileSystem;
 
