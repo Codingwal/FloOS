@@ -1,4 +1,4 @@
-CFILES = $(wildcard src/*.c)
+CFILES = $(wildcard src/*.c src/drivers/*.c)
 OFILES = $(CFILES:.c=.o)
 GCCPATH = arm-gnu-toolchain-14.2.rel1-mingw-w64-x86_64-aarch64-none-elf/bin
 
@@ -21,6 +21,8 @@ os: kernel8.img
 boot.o: asm/boot.s
 	$(GCCPATH)/aarch64-none-elf-gcc $(GCCFLAGS) $(GCCFLAGS-OS) -c asm/boot.s -o boot.o
 
+# Compile source files depending on target
+
 ifeq ($(MAKECMDGOALS), os)
 %.o: %.c
 		$(GCCPATH)/aarch64-none-elf-gcc $(GCCFLAGS) $(GCCFLAGS-OS) -c $< -o $@
@@ -33,6 +35,9 @@ endif
 kernel8.img: boot.o $(OFILES)
 	$(GCCPATH)/aarch64-none-elf-ld -nostdlib boot.o $(OFILES) -T link.ld -o kernel8.elf
 	$(GCCPATH)/aarch64-none-elf-objcopy -O binary kernel8.elf kernel8.img
+
+
+# Clean
 
 clean:
 	del /S *.o
