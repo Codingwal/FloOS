@@ -8,6 +8,7 @@ enum
     GPPUPPDN0 = PERIPHERAL_BASE + 0x2000E4,
 
     GPIO_MAX_PIN = 53,
+    GPIO_FUNCTION_ALT3 = 7,
     GPIO_FUNCTION_ALT5 = 2,
 
     PULL_NONE = 0,
@@ -42,6 +43,12 @@ ExitCode gpio_clear(uint pinNumber, uint value) { return gpio_call(pinNumber, va
 ExitCode gpio_pull(uint pinNumber, uint value) { return gpio_call(pinNumber, value, GPPUPPDN0, 2, GPIO_MAX_PIN); }
 ExitCode gpio_function(uint pinNumber, uint value) { return gpio_call(pinNumber, value, GPFSEL0, 3, GPIO_MAX_PIN); }
 
+ExitCode gpio_useAsAlt3(uint pinNumber)
+{
+    RETURN_ON_FAILURE(gpio_pull(pinNumber, PULL_NONE))
+    RETURN_ON_FAILURE(gpio_function(pinNumber, GPIO_FUNCTION_ALT3))
+    return SUCCESS;
+}
 ExitCode gpio_useAsAlt5(uint pinNumber)
 {
     RETURN_ON_FAILURE(gpio_pull(pinNumber, PULL_NONE))

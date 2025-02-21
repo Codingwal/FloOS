@@ -66,10 +66,20 @@ ExitCode print_(const char *str, uint argc, int64 *argv)
         {
         case 'd':
         case 'i':
+        {
             char tmp[50];
             RETURN_ON_FAILURE(intToString(tmp, (int)arg, 10))
             RETURN_ON_FAILURE(print(tmp))
             break;
+        }
+        case 'x':
+        {
+            char tmp[50];
+            RETURN_ON_FAILURE(intToString(tmp, (int)arg, 16))
+            RETURN_ON_FAILURE(print("0x"))
+            RETURN_ON_FAILURE(print(tmp))
+            break;
+        }
         case 'c':
             RETURN_ON_FAILURE(printChar((char)arg))
             break;

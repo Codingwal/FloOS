@@ -4,5 +4,5 @@
 
 ExitCode uart_init();
 
-ExitCode uart_writeByte(char c);
-char uart_readByte();
+ExitCode uart_writeByte(byte c);
+byte uart_readByte();

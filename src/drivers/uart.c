@@ -1,4 +1,4 @@
-#include "io.h"
+#include "drivers/uart.h"
 #include "gpio.h"
 
 enum
@@ -38,18 +38,18 @@ ExitCode uart_init()
 static bool uart_isWriteByteReady() { return mmio_read(AUX_MU_LSR_REG) & 0x20; }
 static bool uart_isReadByteReady() { return mmio_read(AUX_MU_LSR_REG) & 0x01; }
 
-ExitCode uart_writeByte(char c)
+ExitCode uart_writeByte(byte b)
 {
     while (!uart_isWriteByteReady())
     {
     }
-    mmio_write(AUX_MU_IO_REG, (uint)c);
+    mmio_write(AUX_MU_IO_REG, (uint)b);
     return SUCCESS;
 }
-char uart_readByte()
+byte uart_readByte()
 {
     while (!uart_isReadByteReady())
     {
     }
-    return (char)mmio_read(AUX_MU_IO_REG);
+    return (byte)mmio_read(AUX_MU_IO_REG);
 }

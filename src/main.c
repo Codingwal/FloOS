@@ -2,6 +2,7 @@
 #include "terminal.h"
 #include "stringFormat.h"
 #include "alloc.h"
+#include "drivers/uart.h"
 
 int main()
 {
