@@ -1,30 +1,20 @@
 #include "io.h"
-#include "terminal.h"
 #include "stringFormat.h"
-#include "alloc.h"
 #include "drivers/uart.h"
+#include "kalloc.h"
+#include "mem.h"
 
 int main()
 {
     uart_init();
+    print("Initialized uart\n");
 
-    allocator_init();
-
-    FileSystem *fs = fileSystem_create();
-    if (!fs)
-    {
-        print("Failed to initialize fileSystem.\n");
-        goto end;
-    }
+    print("Initializing allocator\n");
+    kallocInit();
+    print("Initialized allocator\n");
 
     print("Successfully initialized flOSse.\n");
 
-    terminal_run(fs);
-
-    fileSystem_dispose(fs);
-    allocator_dispose();
-
-end:
     while (true)
     {
     }
