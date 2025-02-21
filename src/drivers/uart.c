@@ -1,5 +1,6 @@
 #include "drivers/uart.h"
 #include "gpio.h"
+#include "mem.h"
 
 enum
 {

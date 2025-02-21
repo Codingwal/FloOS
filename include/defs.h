@@ -15,11 +15,6 @@ typedef long long unsigned int uint64;
 #define NULL 0
 #endif
 
-enum
-{
-    PERIPHERAL_BASE = 0xFE000000,
-};
-
 typedef enum ExitCode
 {
     // 0 - 9: Standard

@@ -3,6 +3,7 @@
 #include "gpio.h"
 #include "io.h"
 #include "stringFormat.h"
+#include "mem.h"
 
 enum
 {

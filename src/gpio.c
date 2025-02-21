@@ -1,4 +1,5 @@
 #include "gpio.h"
+#include "mem.h"
 
 enum
 {
