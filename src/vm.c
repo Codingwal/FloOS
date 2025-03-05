@@ -1,0 +1,82 @@
+#include "vm.h"
+#include "kalloc.h"
+#include "mem.h"
+
+// See https://developer.arm.com/documentation/ddi0487/fc/
+// page 2571: virtual adress structure
+// page 2591: page table entry structure
+
+enum
+{
+    VALID = 1 << 0,
+    // READ = 1 << 1,
+    // WRITE = 1 << 2
+};
+
+Pagetable *kernelPagetable;
+
+// Get the page table entry at level 3, which points to a 4KB memory region
+static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr, bool alloc)
+{
+    uint lsb = 39;
+    for (uint level = 0; level < 4; level++)
+    {
+        uint index = ((uint64)virtualAddr >> lsb) & BITMASK(9); // Extract [47..39], [38..30], [29..21] or [20..12], depending on level, and shift it down
+
+        // If the entry points to a memory region and not another page table (true for all entries in a level 3 page table, at least in this os), return a pointer to it
+        if (level == 3)
+            return &table->entries[index];
+
+        uint64 entry = table->entries[index];
+        if (entry & VALID) // Entry exists
+        {
+            table = (Pagetable *)(entry & (BITMASK(48) - BITMASK(12))); // Extract [47..12], which is the next level page table adress ([11..00] is always zero)
+        }
+        else // Entry does not exist
+        {
+            if (!alloc)
+            {
+                // Error
+            }
+            Pagetable *newTable = kalloc(); // kalloc allocates 4KB pages which is exactly the size of a page table
+            mem_set(newTable, 0, PAGE_SIZE);
+            if (!newTable)
+            {
+                // Error
+            }
+            table->entries[index] = (uint64)newTable;
+            table = newTable;
+        }
+        lsb -= 9;
+    }
+}
+
+void vm_map(Pagetable *table, byte *virtualAddr, byte *physicalAddr, uint size, uint64 flags, bool replace)
+{
+    if (size % PAGE_SIZE != 0)
+    {
+        // Error
+    }
+    uint c = size / PAGE_SIZE;
+    for (uint i = 0; i < c; i++)
+    {
+        uint64 *entry = vm_getPTE(table, virtualAddr, true);
+        if (*entry & VALID && !replace)
+        {
+            // Error
+        }
+        *entry = (uint64)physicalAddr | flags;
+
+        virtualAddr += PAGE_SIZE;
+        physicalAddr += PAGE_SIZE;
+    }
+}
+
+void vm_init()
+{
+    kernelPagetable = (Pagetable *)kalloc();
+    mem_set(kernelPagetable, 0, PAGE_SIZE);
+
+    // TODO: Flags needed?
+    vm_map(kernelPagetable, PERIPHERAL_BASE, PERIPHERAL_BASE, PERIPHERAL_SIZE, 0, false);
+}

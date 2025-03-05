@@ -2,7 +2,7 @@
 
 void mem_set(void *start, byte value, uint size)
 {
-    char *ptr = start;
+    byte *ptr = start;
     for (uint i = 0; i < size; i++)
     {
         ptr[i] = value;

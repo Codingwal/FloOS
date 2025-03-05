@@ -1,6 +1,6 @@
 #pragma once
 
-// Allocates 4096B pages
+// Allocates 4KB=4096B pages
 
 void kallocInit();
 void *kalloc();

@@ -9,3 +9,9 @@ A baremetal operating system for a rasperry pi
     - Replace the existing kernel8.img file on the sd card
 
 ## TODO:
+- mmu
+- asserts instead of exit codes
+- printf using stdarg instead of PRINT macro
+- usb
+
+2591
