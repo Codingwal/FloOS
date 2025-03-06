@@ -2,7 +2,7 @@
 
 #include "defs.h"
 
-ExitCode uart_init();
+void uart_init();
 
-ExitCode uart_writeByte(byte c);
+void uart_writeByte(byte c);
 byte uart_readByte();

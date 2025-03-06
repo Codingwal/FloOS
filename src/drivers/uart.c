@@ -20,7 +20,7 @@ enum
 
 #define AUX_MU_BAUD(baud) ((AUX_UART_CLOCK / (baud * 8)) - 1)
 
-ExitCode uart_init()
+void uart_init()
 {
     mmio_write(AUX_ENABLES, 1); // enable UART1
     mmio_write(AUX_MU_IER_REG, 0);
@@ -30,22 +30,20 @@ ExitCode uart_init()
     mmio_write(AUX_MU_IER_REG, 0);
     mmio_write(AUX_MU_IIR_REG, 0xC6); // disable interrupts
     mmio_write(AUX_MU_BAUD_REG, AUX_MU_BAUD(115200));
-    RETURN_ON_FAILURE(gpio_useAsAlt5(14))
-    RETURN_ON_FAILURE(gpio_useAsAlt5(15))
+    gpio_useAsAlt5(14);
+    gpio_useAsAlt5(15);
     mmio_write(AUX_MU_CNTL_REG, 3); // enable RX/TX
-    return SUCCESS;
 }
 
 static bool uart_isWriteByteReady() { return mmio_read(AUX_MU_LSR_REG) & 0x20; }
 static bool uart_isReadByteReady() { return mmio_read(AUX_MU_LSR_REG) & 0x01; }
 
-ExitCode uart_writeByte(byte b)
+void uart_writeByte(byte b)
 {
     while (!uart_isWriteByteReady())
     {
     }
     mmio_write(AUX_MU_IO_REG, (uint)b);
-    return SUCCESS;
 }
 byte uart_readByte()
 {

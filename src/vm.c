@@ -1,6 +1,7 @@
 #include "vm.h"
 #include "kalloc.h"
 #include "mem.h"
+#include "assert.h"
 
 // See https://developer.arm.com/documentation/ddi0487/fc/
 // page 2571: virtual adress structure
@@ -34,16 +35,10 @@ static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr, bool alloc)
         }
         else // Entry does not exist
         {
-            if (!alloc)
-            {
-                // Error
-            }
+            assert(alloc, "vm_getPTE: entry does not exist but allocation is disallowed");
             Pagetable *newTable = kalloc(); // kalloc allocates 4KB pages which is exactly the size of a page table
+            assert(newTable != NULL, "vm_getPTE: newTable allocation failed");
             mem_set(newTable, 0, PAGE_SIZE);
-            if (!newTable)
-            {
-                // Error
-            }
             table->entries[index] = (uint64)newTable;
             table = newTable;
         }
@@ -54,10 +49,7 @@ static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr, bool alloc)
 
 void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, uint64 flags, bool replace)
 {
-    if (size % PAGE_SIZE != 0)
-    {
-        // Error
-    }
+    assert(size % PAGE_SIZE == 0, "vm_map: size must be page aligned");
 
     byte *va = virtualAddr;
     byte *pa = physicalAddr;
@@ -66,10 +58,7 @@ void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, 
     for (uint i = 0; i < c; i++)
     {
         uint64 *entry = vm_getPTE(table, va, true);
-        if (*entry & VALID && !replace)
-        {
-            // Error
-        }
+        assert(!(*entry & VALID && !replace), "vm_map: entry exists but replacing is disallowed");
         *entry = (uint64)pa | flags;
 
         va += PAGE_SIZE;

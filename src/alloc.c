@@ -1,6 +1,8 @@
 #include "alloc.h"
 #include "defs.h"
 #include "io.h"
+#include "assert.h"
+#include "panic.h"
 
 #define SECTOR_COUNT 4
 
@@ -20,15 +22,14 @@ typedef struct Allocator
 Allocator allocator;
 byte buffer[1024 * 1024];
 
-static ExitCode createAllocationSector(AllocationSector *s, uint sizePerElement, uint *idx)
+static void createAllocationSector(AllocationSector *s, uint sizePerElement, uint *idx)
 {
-    if (*idx + sizePerElement * 64 > sizeof(buffer))
-        return FAILURE;
+    assert(*idx + sizePerElement * 64 <= sizeof(buffer), "createAllocationSector: buffer too small");
+
     s->buffer = &buffer[*idx];
     s->sizePerElement = sizePerElement;
     s->memoryMap = 0;
     *idx += sizePerElement * 64;
-    return SUCCESS;
 }
 static void *allocInSector(AllocationSector *s)
 {
@@ -49,39 +50,36 @@ static ExitCode freeInSector(AllocationSector *s, byte *addr)
     uint index = (addr - s->buffer) / s->sizePerElement;
     if (index >= 64)
         return FAILURE;
+
     uint64 mask = 1 << index;
-    if ((s->memoryMap & mask) == 0)
-        return FAILURE;
+    assert((s->memoryMap & mask) != 0, "freeInSector: already freed");
     s->memoryMap &= ~mask; // Set bit to 0 (-> free)
     return SUCCESS;
 }
 
-ExitCode allocator_init()
+void allocator_init()
 {
     uint idx = 0;
-    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[0], 8, &idx))
-    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[1], 32, &idx))
-    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[2], 128, &idx))
-    RETURN_ON_FAILURE(createAllocationSector(&allocator.sectors[3], 512, &idx))
+    createAllocationSector(&allocator.sectors[0], 8, &idx);
+    createAllocationSector(&allocator.sectors[1], 32, &idx);
+    createAllocationSector(&allocator.sectors[2], 128, &idx);
+    createAllocationSector(&allocator.sectors[3], 512, &idx);
     allocator.initialized = true;
-    return SUCCESS;
 }
-ExitCode allocator_dispose()
+void allocator_dispose()
 {
-    if (!allocator.initialized)
-        return FAILURE;
+    assert(allocator.initialized, "allocator_dispose: allocator not initialized");
 
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
         if (allocator.sectors[i].memoryMap != 0)
             print("Found memory leak(s)!\n");
     }
-    return SUCCESS;
 }
 void *alloc(uint size)
 {
-    if (size == 0 || !allocator.initialized)
-        return NULL;
+    assert(size != 0, "alloc: size == 0");
+    assert(allocator.initialized, "alloc: allocator not initialized");
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
         if (size < allocator.sectors[i].sizePerElement)
@@ -91,17 +89,16 @@ void *alloc(uint size)
     }
     return NULL;
 }
-ExitCode freeAlloc(void *ptr)
+void freeAlloc(void *ptr)
 {
-    if (!allocator.initialized)
-        return FAILURE;
+    assert(allocator.initialized, "freeAlloc: allocator not initialized");
 
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
         if (freeInSector(&allocator.sectors[i], ptr) == SUCCESS)
-            return SUCCESS;
+            return;
     }
-    return FAILURE;
+    panic("freeAlloc: invalid ptr");
 }
 
 void allocator_print()

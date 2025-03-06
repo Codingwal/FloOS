@@ -1,12 +1,13 @@
 #include "io.h"
 #include "gpio.h"
-#include "stdarg.h"
 #include "drivers/uart.h"
 #include "string.h"
+#include "assert.h"
+#include "panic.h"
 
-ExitCode printChar(char c)
+void printChar(char c)
 {
-    return uart_writeByte(c);
+    uart_writeByte(c);
 }
 
 char readChar()
@@ -14,18 +15,25 @@ char readChar()
     return uart_readByte();
 }
 
-ExitCode print(const char *str)
+void print(const char *str)
 {
-    if (!str)
-        return FAILURE;
+    assert(str != 0, "print: str is NULL");
     while (*str)
     {
-        RETURN_ON_FAILURE(printChar(*str++))
+        printChar(*str++);
     }
-    return SUCCESS;
 }
 
-ExitCode readLine(char *dest, uint maxCharCount)
+void printf(const char *str, ...)
+{
+    assert(str != 0, "printf: str is NULL");
+    va_list args;
+    va_start(args, str);
+    vprintf(str, args);
+    va_end(args);
+}
+
+void readLine(char *dest, uint maxCharCount)
 {
     for (uint i = 0; i < maxCharCount; i++)
     {
@@ -33,23 +41,20 @@ ExitCode readLine(char *dest, uint maxCharCount)
         if (c == '\n')
         {
             dest[i] = '\0';
-            return SUCCESS;
+            return;
         }
         dest[i] = c;
     }
-    return SUCCESS;
 }
 
-ExitCode intToString(char *dest, int value, int base)
+void intToString(char *dest, int value, int base)
 {
-    if (!dest)
-        return FAILURE;
-
+    assert(dest != 0, "intToString: dest buffer is NULL");
     if (value == 0)
     {
         dest[0] = '0';
         dest[1] = '\0';
-        return SUCCESS;
+        return;
     }
 
     bool isNegative = false;
@@ -71,30 +76,25 @@ ExitCode intToString(char *dest, int value, int base)
 
     if (isNegative)
         dest[i++] = '-';
-    RETURN_ON_FAILURE(string_reverse(dest, i))
+    string_reverse(dest, i);
 
     dest[i] = '\0';
-    return SUCCESS;
 }
 
-ExitCode printf(const char *str, ...)
+void vprintf(const char *str, va_list args)
 {
-    va_list args;
-    va_start(args, str);
-
-    if (!str)
-        return FAILURE;
+    assert(str != 0, "vprintf: str is NULL");
 
     for (; *str != '\0'; str++)
     {
         if (*str != '%')
         {
-            RETURN_ON_FAILURE(printChar(*str))
+            printChar(*str);
             continue;
         }
         if (*++str == '%') // double '%'
         {
-            RETURN_ON_FAILURE(printChar('%'))
+            printChar('%');
             continue;
         }
 
@@ -104,28 +104,26 @@ ExitCode printf(const char *str, ...)
         case 'i':
         {
             char tmp[50];
-            RETURN_ON_FAILURE(intToString(tmp, va_arg(args, int), 10))
-            RETURN_ON_FAILURE(print(tmp))
+            intToString(tmp, va_arg(args, int), 10);
+            print(tmp);
             break;
         }
         case 'x':
         {
             char tmp[50];
-            RETURN_ON_FAILURE(intToString(tmp, va_arg(args, int), 16))
-            RETURN_ON_FAILURE(print("0x"))
-            RETURN_ON_FAILURE(print(tmp))
+            intToString(tmp, va_arg(args, int), 16);
+            print("0x");
+            print(tmp);
             break;
         }
         case 'c':
-            RETURN_ON_FAILURE(printChar((char)va_arg(args, int)))
+            printChar((char)va_arg(args, int));
             break;
         case 's':
-            RETURN_ON_FAILURE(print(va_arg(args, char *)))
+            print(va_arg(args, char *));
             break;
         default:
-            return FAILURE;
+            panic("printf: invalid format specifier");
         }
     }
-    va_end(args);
-    return SUCCESS;
 }

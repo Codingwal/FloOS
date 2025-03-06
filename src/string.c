@@ -1,5 +1,6 @@
 #include "string.h"
 #include "alloc.h"
+#include "assert.h"
 
 uint string_length(const char *str)
 {
@@ -24,15 +25,19 @@ bool string_compare(const char *lhs, const char *rhs)
     return false;
 }
 
-ExitCode string_copy(char *dest, const char *src)
+void string_copy(char *dest, const char *src)
 {
-    if (dest == NULL || src == NULL)
-        return FAILURE;
+    assert(dest != NULL, "string_copy: dest is NULL");
+    assert(src != NULL, "string_copy: src is NULL");
 
-    while ((*dest++ = *src++))
+    while (true)
     {
+        *dest = *src;
+        dest++;
+        src++;
+        if (*src == '\0')
+            break;
     }
-    return SUCCESS;
 }
 
 int string_tokenize(char **destArr, char *str, char delimeter, uint maxTokenCount)
@@ -106,10 +111,10 @@ char *string_substring(const char *str, uint length)
     return res;
 }
 
-ExitCode string_reverse(char *str, uint length)
+void string_reverse(char *str, uint length)
 {
-    if (!str || length == 0)
-        return FAILURE;
+    assert(str != NULL, "string_reverse: dest is NULL");
+    assert(length != 0, "string_reverse: length is zero");
 
     char *end = str + length - 1;
 
@@ -122,10 +127,9 @@ ExitCode string_reverse(char *str, uint length)
         end--;
         str++;
     }
-    return SUCCESS;
 }
 
-ExitCode string_append(char *dest, const char *src)
+void string_append(char *dest, const char *src)
 {
-    return string_copy(dest + string_length(dest), src);
+    string_copy(dest + string_length(dest), src);
 }

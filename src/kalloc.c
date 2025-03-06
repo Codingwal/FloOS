@@ -1,6 +1,7 @@
 #include "kalloc.h"
 #include "mem.h"
 #include "io.h"
+#include "panic.h"
 
 typedef struct FreePage
 {
@@ -22,7 +23,7 @@ static void freeRange(void *start, void *end)
 
 void kallocInit()
 {
-    freeRange((void *)MEM_START, (void *)(MEM_START + 512 * PAGE_SIZE));
+    freeRange((void *)MEM_START, (void *)(MEM_START + 512 * PAGE_SIZE)); // Prepare 512 pages
 
     // Use this to free almost all available memory (slow!)
     // freeRange((void *)MEM_START, (void *)MEM_END);
@@ -41,10 +42,7 @@ void *kalloc()
 void kfree(void *ptr)
 {
     if (((uint64)ptr % PAGE_SIZE) != 0)
-    {
-        print("ERROR: kfree: ptr is not page aligned.\n");
-        return;
-    }
+        panic("kfree: ptr is not page aligned.");
 
     // Zero out chunk
     // mem_set(ptr, 0, PAGE_SIZE);

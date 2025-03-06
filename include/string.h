@@ -12,7 +12,7 @@ bool string_compare(const char *lhs, const char *rhs);
 /// @brief Copies the string src to dest.
 /// @param dest The destination string. Must be at least as large as src!
 /// @param src The source string.
-ExitCode string_copy(char *dest, const char *src);
+void string_copy(char *dest, const char *src);
 
 /// @brief Splits the string into multiple null-terminated strings and stores their start adress in destArr.
 /// @param destArr The array where the "new strings" (char pointers) will be stored.
@@ -39,6 +39,7 @@ char *string_findFromBack(const char *str, uint strLength, char c);
 char *string_substring(const char *str, uint length);
 
 /// @brief Reverses the string
-ExitCode string_reverse(char *str, uint length);
+void string_reverse(char *str, uint length);
 
-ExitCode string_append(char *dest, const char *src);
+/// @brief Appends src to dest
+void string_append(char *dest, const char *src);

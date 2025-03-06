@@ -1,10 +1,12 @@
 #pragma once
 
 #include "defs.h"
+#include "stdarg.h"
 
-ExitCode printChar(char c);
-ExitCode print(const char *str);
-ExitCode printf(const char *fmtStr, ...);
+void printChar(char c);
+void print(const char *str);
+void printf(const char *fmtStr, ...);
+void vprintf(const char *fmtStr, va_list args);
 
 char readChar();
-ExitCode readLine(char *dest, uint maxCharCount);
+void readLine(char *dest, uint maxCharCount);
