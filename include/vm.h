@@ -11,4 +11,4 @@ typedef struct Pagetable
 void vm_init();
 
 // Map a region of virtual memory to a region of physical memory
-void vm_map(Pagetable *table, byte *virtualAddr, byte *physicalAddr, uint size, uint64 flags, bool replace);
+void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, uint64 flags, bool replace);

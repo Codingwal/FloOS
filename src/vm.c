@@ -49,26 +49,31 @@ static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr, bool alloc)
         }
         lsb -= 9;
     }
+    return NULL; // Never reached
 }
 
-void vm_map(Pagetable *table, byte *virtualAddr, byte *physicalAddr, uint size, uint64 flags, bool replace)
+void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, uint64 flags, bool replace)
 {
     if (size % PAGE_SIZE != 0)
     {
         // Error
     }
+
+    byte *va = virtualAddr;
+    byte *pa = physicalAddr;
+
     uint c = size / PAGE_SIZE;
     for (uint i = 0; i < c; i++)
     {
-        uint64 *entry = vm_getPTE(table, virtualAddr, true);
+        uint64 *entry = vm_getPTE(table, va, true);
         if (*entry & VALID && !replace)
         {
             // Error
         }
-        *entry = (uint64)physicalAddr | flags;
+        *entry = (uint64)pa | flags;
 
-        virtualAddr += PAGE_SIZE;
-        physicalAddr += PAGE_SIZE;
+        va += PAGE_SIZE;
+        pa += PAGE_SIZE;
     }
 }
 
@@ -78,5 +83,5 @@ void vm_init()
     mem_set(kernelPagetable, 0, PAGE_SIZE);
 
     // TODO: Flags needed?
-    vm_map(kernelPagetable, PERIPHERAL_BASE, PERIPHERAL_BASE, PERIPHERAL_SIZE, 0, false);
+    vm_map(kernelPagetable, (void *)PERIPHERAL_BASE, (void *)PERIPHERAL_BASE, PERIPHERAL_SIZE, 0, false);
 }
