@@ -1,5 +1,4 @@
 #include "io.h"
-#include "gpio.h"
 #include "drivers/uart.h"
 #include "string.h"
 #include "assert.h"
