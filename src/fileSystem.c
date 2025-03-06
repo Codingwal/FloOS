@@ -1,7 +1,6 @@
 #include "fileSystem.h"
 #include "alloc.h"
 #include "string.h"
-#include "stringFormat.h"
 #include "io.h"
 
 enum
@@ -26,7 +25,7 @@ ExitCode fileSystem_printFileInfo(const FileInfo *file)
 {
     if (!file)
         return FAILURE_INVALID_INPUT;
-    PRINT("FileInfo of \"%s\": size = %d, isFolder = %d\n", file->name, file->size, (bool)file->children)
+    printf("FileInfo of \"%s\": size = %d, isFolder = %d\n", file->name, file->size, (bool)file->children);
     return SUCCESS;
 }
 static ExitCode fileSystem_printFile(const FileInfo *file, uint indentation, bool printChildren)
@@ -39,7 +38,7 @@ static ExitCode fileSystem_printFile(const FileInfo *file, uint indentation, boo
 
     if (file->children)
     {
-        PRINT("%s/\n", file->name)
+        printf("%s/\n", file->name);
         file = file->children;
         indentation++;
         while (file)
@@ -49,12 +48,12 @@ static ExitCode fileSystem_printFile(const FileInfo *file, uint indentation, boo
                 RETURN_ON_FAILURE(fileSystem_printFile(file, indentation, true))
             }
             else
-                PRINT("    %s\n", file->name)
+                printf("    %s\n", file->name);
             file = file->next;
         }
     }
     else
-        PRINT("%s\n", file->name)
+        printf("%s\n", file->name);
     return SUCCESS;
 }
 ExitCode fileSystem_listFiles(const FileSystem *fs, const char *path, bool recursive)

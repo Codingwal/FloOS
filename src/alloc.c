@@ -1,6 +1,5 @@
 #include "alloc.h"
 #include "defs.h"
-#include "stringFormat.h"
 #include "io.h"
 
 #define SECTOR_COUNT 4
@@ -113,7 +112,7 @@ void allocator_print()
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
         AllocationSector *s = &allocator.sectors[i];
-        PRINT("Sector %i: sizePerElement = %i\nMemoryMap: ", i, s->sizePerElement);
+        printf("Sector %i: sizePerElement = %i\nMemoryMap: ", i, s->sizePerElement);
         uint64 mask = 1;
         for (uint j = 0; j < 64; j++)
         {

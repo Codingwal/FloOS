@@ -1,5 +1,4 @@
 #include "terminal.h"
-#include "stringFormat.h"
 #include "string.h"
 #include "io.h"
 #include "fileSystem.h"
@@ -106,7 +105,7 @@ static const char *exitCodeToString(ExitCode exitCode)
 static void printExitCode(ExitCode exitCode)
 {
     if (exitCode != SUCCESS)
-        PRINT("%s (ExitCode %d)\n", exitCodeToString(exitCode), exitCode)
+        printf("%s (ExitCode %d)\n", exitCodeToString(exitCode), exitCode);
 }
 typedef enum Command
 {
@@ -167,7 +166,7 @@ static void terminal_execCmd(char *str, FileSystem *fs, char *path)
         char *filePath = &filePathArr[0];
         if (string_length(path) + 1 + string_length(fileName) > MAX_FILE_PATH_LENGTH)
         {
-            PRINT("File path exceeds maximum length of %d", MAX_FILE_PATH_LENGTH)
+            printf("File path exceeds maximum length of %d", MAX_FILE_PATH_LENGTH);
             return;
         }
         string_copy(filePath, path);
@@ -212,13 +211,11 @@ static void terminal_execCmd(char *str, FileSystem *fs, char *path)
     }
     else if (cmd == LOGO)
     {
-        print("\n");
-        print(logo);
-        print("\n");
+        printf("\n%s\n", logo);
     }
     else
     {
-        PRINT("Unknown command \"%s\".\n", cmd)
+        printf("Unknown command \"%s\".\n", cmd);
     }
 }
 void terminal_run(FileSystem *fs)
@@ -229,7 +226,7 @@ void terminal_run(FileSystem *fs)
     char str[200];
     while (true)
     {
-        PRINT("%s> ", path)
+        printf("%s> ", path);
         readLine(str, 200);
         terminal_execCmd(str, fs, path);
     }
