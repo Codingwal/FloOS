@@ -1,10 +1,10 @@
 #include "assert.h"
 #include "panic.h"
 
-void assert(bool condition, char *errorMessage)
+void _assert(bool condition, const char *errorMessage, const char *file, int line, const char *func)
 {
     if (condition)
         return;
 
-    panic("Assertion failed: %s", errorMessage);
+    _panic("Assertion failed: %s", file, line, func, errorMessage);
 }

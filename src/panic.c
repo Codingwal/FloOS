@@ -2,12 +2,12 @@
 #include "io.h"
 #include "stdarg.h"
 
-void panic(const char *errorMessage, ...)
+void _panic(const char *errorMessage, const char *file, int line, const char *func, ...)
 {
-    print("Fatal error: ");
+    printf("Fatal error in function %s (file %s, line %d): ", func, file, line);
 
     va_list args;
-    va_start(args, errorMessage);
+    va_start(args, func);
     vprintf(errorMessage, args);
     va_end(args);
 

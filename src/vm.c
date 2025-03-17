@@ -110,7 +110,7 @@ void *vm_getVaRange(Pagetable *table, uint size)
 
     const uint MAX_TRIES = 10000; // Stop after trying MAX_TRIES PTEs
     uint count = 0;
-    for (byte *va; (uint64)va < MAX_TRIES * PAGE_SIZE; va += PAGE_SIZE)
+    for (byte *va = 0; (uint64)va < MAX_TRIES * PAGE_SIZE; va += PAGE_SIZE)
     {
         uint64 *entryPtr = vm_getPTE(table, va, true);
 
