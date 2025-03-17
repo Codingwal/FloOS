@@ -1,8 +1,7 @@
 #include "alloc.h"
 #include "defs.h"
 #include "io.h"
-#include "assert.h"
-#include "panic.h"
+#include "error.h"
 
 #define SECTOR_COUNT 4
 
@@ -24,7 +23,7 @@ byte buffer[1024 * 1024];
 
 static void createAllocationSector(AllocationSector *s, uint sizePerElement, uint *idx)
 {
-    assert(*idx + sizePerElement * 64 <= sizeof(buffer), "createAllocationSector: buffer too small");
+    assert(*idx + sizePerElement * 64 <= sizeof(buffer), "buffer too small");
 
     s->buffer = &buffer[*idx];
     s->sizePerElement = sizePerElement;
@@ -52,7 +51,7 @@ static ExitCode freeInSector(AllocationSector *s, byte *addr)
         return FAILURE;
 
     uint64 mask = 1 << index;
-    assert((s->memoryMap & mask) != 0, "freeInSector: already freed");
+    assert((s->memoryMap & mask) != 0, "already freed");
     s->memoryMap &= ~mask; // Set bit to 0 (-> free)
     return SUCCESS;
 }
@@ -68,7 +67,7 @@ void allocator_init()
 }
 void allocator_dispose()
 {
-    assert(allocator.initialized, "allocator_dispose: allocator not initialized");
+    assert(allocator.initialized, "allocator not initialized");
 
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
@@ -78,8 +77,8 @@ void allocator_dispose()
 }
 void *alloc(uint size)
 {
-    assert(size != 0, "alloc: size == 0");
-    assert(allocator.initialized, "alloc: allocator not initialized");
+    assert(size != 0, "size == 0");
+    assert(allocator.initialized, "allocator not initialized");
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
         if (size < allocator.sectors[i].sizePerElement)
@@ -91,14 +90,14 @@ void *alloc(uint size)
 }
 void freeAlloc(void *ptr)
 {
-    assert(allocator.initialized, "freeAlloc: allocator not initialized");
+    assert(allocator.initialized, "allocator not initialized");
 
     for (uint i = 0; i < SECTOR_COUNT; i++)
     {
         if (freeInSector(&allocator.sectors[i], ptr) == SUCCESS)
             return;
     }
-    panic("freeAlloc: invalid ptr");
+    panic("invalid ptr");
 }
 
 void allocator_print()

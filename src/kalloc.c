@@ -1,7 +1,7 @@
 #include "kalloc.h"
 #include "mem.h"
 #include "io.h"
-#include "panic.h"
+#include "error.h"
 
 typedef struct FreePage
 {
@@ -42,7 +42,7 @@ void *kalloc()
 void kfree(void *ptr)
 {
     if (((uint64)ptr % PAGE_SIZE) != 0)
-        panic("kfree: ptr is not page aligned.");
+        panic("ptr is not page aligned.");
 
     // Zero out chunk
     // mem_set(ptr, 0, PAGE_SIZE);

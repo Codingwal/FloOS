@@ -1,7 +1,7 @@
 #include "vm.h"
 #include "kalloc.h"
 #include "mem.h"
-#include "assert.h"
+#include "error.h"
 
 // See https://developer.arm.com/documentation/ddi0487/fc/
 // page 2571: virtual adress structure
@@ -22,7 +22,7 @@ Pagetable *kernelPagetable;
 // Get the page table entry at level 3, which points to a 4KB memory region
 static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr, bool alloc)
 {
-    assert(table != NULL, "vm_getPTE: table is NULL");
+    assert(table != NULL, "table is NULL");
 
     uint lsb = 39;
     for (uint level = 0; level < 4; level++)
@@ -40,9 +40,9 @@ static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr, bool alloc)
         }
         else // Entry does not exist
         {
-            assert(alloc, "vm_getPTE: entry does not exist but allocation is disallowed");
+            assert(alloc, "entry does not exist but allocation is disallowed");
             Pagetable *newTable = kalloc(); // kalloc allocates 4KB pages which is exactly the size of a page table
-            assert(newTable != NULL, "vm_getPTE: newTable allocation failed");
+            assert(newTable != NULL, "newTable allocation failed");
             mem_set(newTable, 0, PAGE_SIZE);
 
             // TODO: add recursive PTE
@@ -57,7 +57,7 @@ static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr, bool alloc)
 
 void *vm_va2pa(Pagetable *table, void *virtualAddr)
 {
-    assert(table != NULL, "vm_va2pa: table is NULL");
+    assert(table != NULL, "table is NULL");
 
     uint64 *entryPtr = vm_getPTE(table, virtualAddr, false);
     return PTE2PA(*entryPtr);
@@ -65,10 +65,10 @@ void *vm_va2pa(Pagetable *table, void *virtualAddr)
 
 void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, uint64 flags, bool replace)
 {
-    assert(table != NULL, "vm_map: table is NULL");
-    assert(size % PAGE_SIZE == 0, "vm_map: size must be page aligned");
-    assert((uint64)virtualAddr % PAGE_SIZE == 0, "vm_map: virtual address must be page aligned");
-    assert((uint64)physicalAddr % PAGE_SIZE == 0, "vm_map: physical address must be page aligned");
+    assert(table != NULL, "table is NULL");
+    assert(size % PAGE_SIZE == 0, "size must be page aligned");
+    assert((uint64)virtualAddr % PAGE_SIZE == 0, "virtual address must be page aligned");
+    assert((uint64)physicalAddr % PAGE_SIZE == 0, "physical address must be page aligned");
 
     byte *va = virtualAddr;
     byte *pa = physicalAddr;
@@ -77,7 +77,7 @@ void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, 
     for (uint i = 0; i < c; i++)
     {
         uint64 *entry = vm_getPTE(table, va, true);
-        assert(!(*entry & VALID && !replace), "vm_map: entry exists but replacing is disallowed");
+        assert(!(*entry & VALID && !replace), "entry exists but replacing is disallowed");
         *entry = (uint64)pa | flags;
 
         va += PAGE_SIZE;
@@ -87,9 +87,9 @@ void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, 
 
 void vm_unmap(Pagetable *table, void *virtualAddr, uint size)
 {
-    assert(table != NULL, "vm_unmap: table is NULL");
-    assert(size % PAGE_SIZE == 0, "vm_unmap: size must be page aligned");
-    assert((uint64)virtualAddr % PAGE_SIZE == 0, "vm_unmap: virtual address must be page aligned");
+    assert(table != NULL, "table is NULL");
+    assert(size % PAGE_SIZE == 0, "size must be page aligned");
+    assert((uint64)virtualAddr % PAGE_SIZE == 0, "virtual address must be page aligned");
 
     byte *va = virtualAddr;
 
@@ -104,8 +104,8 @@ void vm_unmap(Pagetable *table, void *virtualAddr, uint size)
 
 void *vm_getVaRange(Pagetable *table, uint size)
 {
-    assert(table != NULL, "vm_getVaRange: table is NULL");
-    assert(size % PAGE_SIZE == 0, "vm_getVaRange: size must be page aligned");
+    assert(table != NULL, "table is NULL");
+    assert(size % PAGE_SIZE == 0, "size must be page aligned");
     size /= PAGE_SIZE;
 
     const uint MAX_TRIES = 10000; // Stop after trying MAX_TRIES PTEs
@@ -135,7 +135,7 @@ void *vm_getVaRange(Pagetable *table, uint size)
 void vm_init()
 {
     kernelPagetable = (Pagetable *)kalloc();
-    assert(kernelPagetable != NULL, "vm_init: kalloc failed");
+    assert(kernelPagetable != NULL, "kalloc failed");
     mem_set(kernelPagetable, 0, PAGE_SIZE);
 
     // TODO: Flags needed?

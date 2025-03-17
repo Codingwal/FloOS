@@ -1,6 +1,6 @@
 #include "drivers/gpio.h"
 #include "mem.h"
-#include "assert.h"
+#include "error.h"
 
 enum
 {
@@ -23,8 +23,8 @@ void gpio_call(uint pinNumber, uint value, uint base, uint fieldSize, uint field
 {
     uint fieldMask = (1 << fieldSize) - 1; // fieldSize=5->00011111
 
-    assert(pinNumber <= fieldMax, "gpio_call: pinNumber exceeds pin count");
-    assert(value <= fieldMask, "gpio_call: value exceeds field size");
+    assert(pinNumber <= fieldMax, "pinNumber exceeds pin count");
+    assert(value <= fieldMask, "value exceeds field size");
 
     // Calculate reg and position in reg
     uint fieldsPerReg = 32 / fieldSize;

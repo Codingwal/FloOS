@@ -1,8 +1,7 @@
 #include "io.h"
 #include "drivers/uart.h"
 #include "string.h"
-#include "assert.h"
-#include "panic.h"
+#include "error.h"
 
 void printChar(char c)
 {
@@ -16,7 +15,7 @@ char readChar()
 
 void print(const char *str)
 {
-    assert(str != 0, "print: str is NULL");
+    assert(str != 0, "str is NULL");
     while (*str)
     {
         printChar(*str++);
@@ -25,7 +24,7 @@ void print(const char *str)
 
 void printf(const char *str, ...)
 {
-    assert(str != 0, "printf: str is NULL");
+    assert(str != 0, "str is NULL");
     va_list args;
     va_start(args, str);
     vprintf(str, args);
@@ -48,7 +47,7 @@ void readLine(char *dest, uint maxCharCount)
 
 void intToString(char *dest, int value, int base)
 {
-    assert(dest != 0, "intToString: dest buffer is NULL");
+    assert(dest != 0, "dest buffer is NULL");
     if (value == 0)
     {
         dest[0] = '0';
@@ -82,7 +81,7 @@ void intToString(char *dest, int value, int base)
 
 void vprintf(const char *str, va_list args)
 {
-    assert(str != 0, "vprintf: str is NULL");
+    assert(str != 0, "str is NULL");
 
     for (; *str != '\0'; str++)
     {
@@ -122,7 +121,7 @@ void vprintf(const char *str, va_list args)
             print(va_arg(args, char *));
             break;
         default:
-            panic("printf: invalid format specifier");
+            panic("invalid format specifier");
         }
     }
 }

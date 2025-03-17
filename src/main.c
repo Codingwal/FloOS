@@ -2,7 +2,6 @@
 #include "drivers/uart.h"
 #include "kalloc.h"
 #include "mem.h"
-#include "assert.h"
 
 int main()
 {

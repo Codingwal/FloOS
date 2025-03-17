@@ -1,6 +1,6 @@
 #include "string.h"
 #include "alloc.h"
-#include "assert.h"
+#include "error.h"
 
 uint string_length(const char *str)
 {
@@ -27,8 +27,8 @@ bool string_compare(const char *lhs, const char *rhs)
 
 void string_copy(char *dest, const char *src)
 {
-    assert(dest != NULL, "string_copy: dest is NULL");
-    assert(src != NULL, "string_copy: src is NULL");
+    assert(dest != NULL, "dest is NULL");
+    assert(src != NULL, "src is NULL");
 
     while (true)
     {
