@@ -1,6 +1,6 @@
 # FloOS
 
-A baremetal operating system for a rasperry pi
+An operating system for the rpi4b, written in c
 
 
 ## Compilation info:
