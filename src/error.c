@@ -12,7 +12,7 @@ void _assert(bool condition, const char *errorMessage, const char *file, int lin
 
 void _panic(const char *errorMessage, const char *file, int line, const char *func, ...)
 {
-    printf("Fatal error in function %s (file %s, line %d): ", func, file, line);
+    printf("Fatal error in function \"%s\" (file %s, line %d):\n", func, file, line);
 
     va_list args;
     va_start(args, func);

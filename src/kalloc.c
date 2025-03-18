@@ -23,7 +23,7 @@ static void freeRange(void *start, void *end)
 
 void kallocInit()
 {
-    freeRange((void *)MEM_START, (void *)(MEM_START + 512 * PAGE_SIZE)); // Prepare 512 pages
+    freeRange((void *)MEM_START, (void *)(MEM_START + 16 * 1024 * PAGE_SIZE)); // Prepare 16K pages
 
     // Use this to free almost all available memory (slow!)
     // freeRange((void *)MEM_START, (void *)MEM_END);
@@ -31,7 +31,7 @@ void kallocInit()
 
 void *kalloc()
 {
-    if (!freePages)
+    if (freePages == NULL)
         return NULL;
 
     FreePage *page = freePages;
