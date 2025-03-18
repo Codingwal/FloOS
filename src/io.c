@@ -98,6 +98,12 @@ void vprintf(const char *str, va_list args)
 
         switch (*str)
         {
+        case 'c':
+            printChar((char)va_arg(args, int));
+            break;
+        case 's':
+            print(va_arg(args, char *));
+            break;
         case 'd':
         case 'i':
         {
@@ -114,11 +120,23 @@ void vprintf(const char *str, va_list args)
             print(tmp);
             break;
         }
-        case 'c':
-            printChar((char)va_arg(args, int));
+        case 'b':
+        {
+            char tmp[50];
+            intToString(tmp, va_arg(args, int), 2);
+            print("0b");
+            print(tmp);
             break;
-        case 's':
-            print(va_arg(args, char *));
+        }
+        case 'B':
+            if (va_arg(args, int))
+            {
+                print("true");
+            }
+            else
+            {
+                print("false");
+            }
             break;
         default:
             panic("invalid format specifier");
