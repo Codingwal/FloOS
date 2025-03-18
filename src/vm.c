@@ -2,6 +2,8 @@
 #include "kalloc.h"
 #include "mem.h"
 #include "error.h"
+#include "mmu.h"
+#include "io.h"
 
 // See https://developer.arm.com/documentation/ddi0487/fc/
 // page 2571: virtual adress structure
@@ -18,6 +20,7 @@ enum
 Pagetable *kernelPagetable;
 
 #define PTE2PA(x) ((void *)(x & (BITMASK(48) - BITMASK(12))))
+#define PA2PTE(x) ((uint64)x)
 
 // Get the page table entry at level 3, which points to a 4KB memory region
 static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr, bool alloc)
@@ -45,9 +48,7 @@ static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr, bool alloc)
             assert(newTable != NULL, "newTable allocation failed");
             mem_set(newTable, 0, PAGE_SIZE);
 
-            // TODO: add recursive PTE
-
-            table->entries[index] = (uint64)newTable;
+            table->entries[index] = PA2PTE(newTable);
             table = newTable;
         }
         lsb -= 9;
@@ -134,12 +135,23 @@ void *vm_getVaRange(Pagetable *table, uint size)
 
 void vm_init()
 {
+    // Allocate L0 kernel pagetable
     kernelPagetable = (Pagetable *)kalloc();
     assert(kernelPagetable != NULL, "kalloc failed");
     mem_set(kernelPagetable, 0, PAGE_SIZE);
+    kernelPagetable->entries[511] = PA2PTE(kernelPagetable); // Last entry points to itself. This is used to get the PAs of pagetables
 
+    // Map kernel addresses (peripherals, kernel code, ...)
     // TODO: Flags needed?
-    vm_map(kernelPagetable, (void *)PERIPHERAL_BASE, (void *)PERIPHERAL_BASE, PERIPHERAL_SIZE, 0, false);
+    vm_map(kernelPagetable, (void *)PERIPHERAL_BASE, (void *)PERIPHERAL_BASE, PAGE_ROUND_UP(PERIPHERAL_SIZE), 0, false);
+    vm_map(kernelPagetable, _start, _start, PAGE_ROUND_UP(_end - _start), 0, false);
 
-    // TODO: add required mappings (kernel code, ...)
+    print("Prepared pagetables\n");
+
+    // Setup and enable the mmu and virtual memory
+    mmu_setConfig(kernelPagetable);
+    print("Prepared mmu\n");
+    mmu_enable();
+
+    assert(mmu_isEnabled(), "mmu is not enabled");
 }
