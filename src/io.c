@@ -45,7 +45,7 @@ void readLine(char *dest, uint maxCharCount)
     }
 }
 
-void intToString(char *dest, int value, int base)
+static void intToString(char *dest, int value, int base)
 {
     assert(dest != 0, "dest buffer is NULL");
     if (value == 0)

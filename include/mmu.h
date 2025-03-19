@@ -6,7 +6,7 @@
 // This is needed before virtual memory can be enabled
 void mmu_setConfig(const Pagetable *kernelPagetable);
 
-// Enable the mmu and therefor vm
+// Enable the mmu and therefore vm
 void mmu_enable();
 
 // Returns 1 if the mmu is enabled and zero if it is not
