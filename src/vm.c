@@ -143,8 +143,9 @@ void vm_init()
 
     // Map kernel addresses (peripherals, kernel code, ...)
     // TODO: Flags needed?
-    vm_map(kernelPagetable, (void *)PERIPHERAL_BASE, (void *)PERIPHERAL_BASE, PAGE_ROUND_UP(PERIPHERAL_SIZE), 0, false);
-    vm_map(kernelPagetable, _start, _start, PAGE_ROUND_UP(_end - _start), 0, false);
+    vm_map(kernelPagetable, (void *)PERIPHERAL_BASE, (void *)PERIPHERAL_BASE, PAGE_ROUND_UP(PERIPHERAL_SIZE), 0, false); // Peripherals (uart, ...)
+    vm_map(kernelPagetable, _start, _start, PAGE_ROUND_UP(_end - _start), 0, false);                                     // Kernel executable
+    vm_map(kernelPagetable, STACK_BOTTOM, STACK_BOTTOM, STACK_SIZE, 0, false);
 
     print("Prepared pagetables\n");
 
@@ -152,6 +153,7 @@ void vm_init()
     mmu_setConfig(kernelPagetable);
     print("Prepared mmu\n");
     mmu_enable();
+    print("Enabled mmu\n");
 
     assert(mmu_isEnabled(), "mmu is not enabled");
 }

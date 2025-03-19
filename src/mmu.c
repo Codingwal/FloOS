@@ -11,8 +11,11 @@ void mmu_setConfig(const Pagetable *kernelPagetable)
     sysregs_tcr_el1_write(0x5b5103510);
 
     // Set memory attributes
-    // Everything to 1 -> everything normal memory
-    sysregs_mair_el1_write((uint64)-1);
+    // https://documentation-service.arm.com/static/63a43e333f28e5456434e18b (learn_the_architecture_-_aarch64_memory_attributes_and_properties)
+    byte normal = 0xFF;
+    byte normalNoCache = 0b01000100;
+    byte device = 0;
+    sysregs_mair_el1_write(normal | (normalNoCache << 8) | (device << 16));
 
     asm volatile("isb\n");
 }
