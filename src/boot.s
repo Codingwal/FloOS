@@ -69,6 +69,7 @@ el1_entry:
     // Clean the BSS section
     ldr x1, = _bss_start
     ldr w2, = _bss_size
+    lsr w2, w2, #3
 3:  cbz w2, 4f
     str xzr, [x1], #8   // xzr is the zero register
     sub w2, w2, #1

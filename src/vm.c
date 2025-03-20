@@ -193,8 +193,10 @@ void vm_init()
     // Map kernel addresses (peripherals, kernel code, ...)
     vm_map(kernelPagetable, (void *)PERIPHERAL_BASE, (void *)PERIPHERAL_BASE, PAGE_ROUND_UP(PERIPHERAL_SIZE), false, IDX_DEVICE, true, PRIV_RW); // Peripherals (uart, ...)
     print("Mapped peripherals\n");
-    vm_map(kernelPagetable, _start, _start, PAGE_ROUND_UP(kernelExecutableSize()), false, IDX_NORMAL, false, PRIV_RW); // Kernel executable
+    vm_map(kernelPagetable, _text_start, _text_start, PAGE_ROUND_UP(kernelExecutableSize()), false, IDX_NORMAL, false, PRIV_R); // Kernel executable
     print("Mapped kernel executable\n");
+    vm_map(kernelPagetable, _data_start, _data_start, PAGE_ROUND_UP(kernelDataSize()), false, IDX_NORMAL, true, PRIV_RW); // Kernel data
+    print("Mapped kernel data\n");
     vm_map(kernelPagetable, (void *)_stack_bottom, (void *)_stack_bottom, PAGE_ROUND_UP(kernelStackSize()), false, IDX_NORMAL, true, PRIV_RW); // Stack
     print("Mapped stack\n");
 
