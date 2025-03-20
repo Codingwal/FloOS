@@ -45,6 +45,30 @@ void readLine(char *dest, uint maxCharCount)
     }
 }
 
+static void uintToString(char *dest, uint value, int base)
+{
+    assert(dest != 0, "dest buffer is NULL");
+    if (value == 0)
+    {
+        dest[0] = '0';
+        dest[1] = '\0';
+        return;
+    }
+
+    uint i = 0;
+    while (value != 0)
+    {
+        int remainder = value % base;
+        if (remainder < 10)
+            dest[i++] = remainder + '0';
+        else
+            dest[i++] = remainder - 10 + 'a';
+        value /= base;
+    }
+    string_reverse(dest, i);
+    dest[i] = '\0';
+}
+
 static void intToString(char *dest, int value, int base)
 {
     assert(dest != 0, "dest buffer is NULL");
@@ -56,7 +80,7 @@ static void intToString(char *dest, int value, int base)
     }
 
     bool isNegative = false;
-    if (base == 10 && value < 0)
+    if (value < 0)
     {
         isNegative = true;
         value = -value;
@@ -71,11 +95,9 @@ static void intToString(char *dest, int value, int base)
             dest[i++] = remainder - 10 + 'a';
         value /= base;
     }
-
     if (isNegative)
         dest[i++] = '-';
     string_reverse(dest, i);
-
     dest[i] = '\0';
 }
 
@@ -115,7 +137,7 @@ void vprintf(const char *str, va_list args)
         case 'x':
         {
             char tmp[50];
-            intToString(tmp, va_arg(args, int), 16);
+            uintToString(tmp, va_arg(args, uint), 16);
             print("0x");
             print(tmp);
             break;
@@ -123,7 +145,7 @@ void vprintf(const char *str, va_list args)
         case 'b':
         {
             char tmp[50];
-            intToString(tmp, va_arg(args, int), 2);
+            uintToString(tmp, va_arg(args, int), 2);
             print("0b");
             print(tmp);
             break;
