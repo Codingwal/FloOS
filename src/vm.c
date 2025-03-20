@@ -23,45 +23,83 @@ Pagetable *kernelPagetable;
 #define PTE2PA(x) ((void *)(x & (BITMASK(48) - BITMASK(12))))
 #define PA2PTE(x) ((uint64)x)
 
+static void vm_createPagetables()
+{
+    // Create L0 kernel pagetable (0TB - 256TB)
+    kernelPagetable = (Pagetable *)pageAlloc_alloc();
+    mem_set(kernelPagetable, 0, PAGE_SIZE);
+    kernelPagetable->entries[511] = PA2PTE(kernelPagetable) | TABLE_DESCRIPTOR | VALID; // Last entry points to itself. This is used to get the PAs of pagetables
+
+    // Create L1 pagetable (0GB - 512GB)
+    Pagetable *L1 = pageAlloc_alloc();
+    mem_set(L1, 0, PAGE_SIZE);
+    kernelPagetable->entries[0] = PA2PTE(L1) | TABLE_DESCRIPTOR | VALID;
+
+    // Create L2 pagetable (0GB - 1GB)
+    Pagetable *L2 = pageAlloc_alloc();
+    mem_set(L2, 0, PAGE_SIZE);
+    L1->entries[0] = PA2PTE(L2) | TABLE_DESCRIPTOR | VALID;
+
+    // Create L2 device pagetable (3GB - 4GB)
+    Pagetable *L2periph = pageAlloc_alloc();
+    mem_set(L2periph, 0, PAGE_SIZE);
+    L1->entries[3] = PA2PTE(L2periph) | TABLE_DESCRIPTOR | VALID;
+
+    // L3 pagetables
+    {
+        // Stack and kernel (0MB - 2MB)
+        Pagetable *kernel = pageAlloc_alloc();
+        L2->entries[0] = PA2PTE(kernel) | TABLE_DESCRIPTOR | VALID;
+        mem_set(kernel, 0, PAGE_SIZE);
+
+        // RAM (2MB - 4MB)
+        Pagetable *ram = pageAlloc_alloc();
+        L2->entries[1] = PA2PTE(ram) | TABLE_DESCRIPTOR | VALID;
+        mem_set(ram, 0, PAGE_SIZE);
+
+        // AUX & GPIO (4066MB - 4068MB) (4066MB = 3GB + 994MB; 994 / 2 = 497)
+        Pagetable *aux = pageAlloc_alloc();
+        L2periph->entries[497] = PA2PTE(aux) | TABLE_DESCRIPTOR | VALID;
+        mem_set(aux, 0, PAGE_SIZE);
+    }
+}
+
 // Get the page table entry at level 3, which points to a 4KB memory region
-static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr, bool alloc)
+static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr)
 {
     assert(table != NULL, "table is NULL");
 
+    if (vm_isEnabled())
+    {
+        // Shift indices down and use 511 as the first index (kernelPagetable[511] points to kernelPagetable)
+        uint64 va = (uint64)virtualAddr;
+        va >>= 9;
+        va = va & ((uint64)511 << 39);
+        return (uint64 *)va;
+    }
+
     uint lsb = 39;
-    for (uint level = 0; level < 4; level++)
+    for (uint level = 0; true; level++)
     {
         uint index = ((uint64)virtualAddr >> lsb) & BITMASK(9); // Extract [47..39], [38..30], [29..21] or [20..12], depending on level, and shift it down
 
-        // If the entry points to a memory region and not another page table (true for all entries in a level 3 page table, at least in this os), return a pointer to it
+        // If the entry points to a memory region and not another page table (true for all entries in a level 3 page table), return a pointer to it
         if (level == 3)
             return &table->entries[index];
 
         uint64 entry = table->entries[index];
-        if (entry & VALID) // Entry exists
-        {
-            table = (Pagetable *)PTE2PA(entry); // Extract [47..12], which is the next level page table adress ([11..00] is always zero)
-        }
-        else // Entry does not exist
-        {
-            assert(alloc, "entry does not exist but allocation is disallowed");
-            Pagetable *newTable = pageAlloc_alloc(); // pageAlloc_alloc allocates 4KB pages which is exactly the size of a page table
-            assert(newTable != NULL, "newTable allocation failed");
-            mem_set(newTable, 0, PAGE_SIZE);
+        assert(entry & VALID, "invalid entry");
+        table = (Pagetable *)PTE2PA(entry); // Extract [47..12], which is the next level page table adress ([11..00] is always zero)
 
-            table->entries[index] = PA2PTE(newTable) | TABLE_DESCRIPTOR | VALID;
-            table = newTable;
-        }
         lsb -= 9;
     }
-    return NULL; // Never reached
 }
 
 void *vm_va2pa(Pagetable *table, void *virtualAddr)
 {
     assert(table != NULL, "table is NULL");
 
-    uint64 *entryPtr = vm_getPTE(table, virtualAddr, false);
+    uint64 *entryPtr = vm_getPTE(table, virtualAddr);
     if (*entryPtr & VALID)
         return PTE2PA(*entryPtr);
     else
@@ -91,7 +129,7 @@ void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, 
     byte *lastPage = va + size;
     while (va < lastPage)
     {
-        uint64 *entry = vm_getPTE(table, va, true);
+        uint64 *entry = vm_getPTE(table, va);
         assert(!(*entry & VALID) || replace, "entry exists but replacing is disallowed");
         *entry = (uint64)pa | flags;
 
@@ -111,7 +149,7 @@ void vm_unmap(Pagetable *table, void *virtualAddr, uint size)
     uint c = size / PAGE_SIZE;
     for (uint i = 0; i < c; i++)
     {
-        uint64 *entry = vm_getPTE(table, va, false);
+        uint64 *entry = vm_getPTE(table, va);
         *entry = 0;
         va += PAGE_SIZE;
     }
@@ -123,11 +161,10 @@ void *vm_getVaRange(Pagetable *table, uint size)
     assert(size % PAGE_SIZE == 0, "size must be page aligned");
     size /= PAGE_SIZE;
 
-    const uint MAX_TRIES = 1000; // Stop after trying MAX_TRIES PTEs
     uint count = 0;
-    for (byte *va = (byte *)MEM_START; (uint64)va < MEM_START + MAX_TRIES * PAGE_SIZE; va += PAGE_SIZE)
+    for (byte *va = (byte *)V_RAM_START; (uint64)va < V_RAM_END; va += PAGE_SIZE)
     {
-        uint64 *entryPtr = vm_getPTE(table, va, true);
+        uint64 *entryPtr = vm_getPTE(table, va);
 
         // If there already is a physical address mapped to this virtual address, reset the free PTEs counter and continue
         if (*entryPtr & VALID)
@@ -185,16 +222,13 @@ bool vm_isEnabled()
 
 void vm_init()
 {
-    // Allocate L0 kernel pagetable
-    kernelPagetable = (Pagetable *)pageAlloc_alloc();
-    mem_set(kernelPagetable, 0, PAGE_SIZE);
-    kernelPagetable->entries[511] = PA2PTE(kernelPagetable) | TABLE_DESCRIPTOR | VALID; // Last entry points to itself. This is used to get the PAs of pagetables
+    vm_createPagetables();
 
     // Map kernel addresses (peripherals, kernel code, ...)
-    vm_map(kernelPagetable, (void *)PERIPHERAL_BASE, (void *)PERIPHERAL_BASE, PAGE_ROUND_UP(PERIPHERAL_SIZE), false, IDX_DEVICE, true, PRIV_RW); // Peripherals (uart, ...)
-    vm_map(kernelPagetable, _text_start, _text_start, PAGE_ROUND_UP(kernelExecutableSize()), false, IDX_NORMAL, false, PRIV_R);                  // Kernel executable
-    vm_map(kernelPagetable, _data_start, _data_start, PAGE_ROUND_UP(kernelDataSize()), false, IDX_NORMAL, true, PRIV_RW);                        // Kernel data
-    vm_map(kernelPagetable, (void *)_stack_bottom, (void *)_stack_bottom, PAGE_ROUND_UP(kernelStackSize()), false, IDX_NORMAL, true, PRIV_RW);   // Stack
+    vm_map(kernelPagetable, (void *)LOWEST_USED_PERIPHERAL, (void *)LOWEST_USED_PERIPHERAL, USED_PERIPHERAL_SIZE, false, IDX_DEVICE, true, PRIV_RW); // Peripherals (uart, ...)
+    vm_map(kernelPagetable, _text_start, _text_start, PAGE_ROUND_UP(kernelExecutableSize()), false, IDX_NORMAL, false, PRIV_R);                      // Kernel executable
+    vm_map(kernelPagetable, _data_start, _data_start, PAGE_ROUND_UP(kernelDataSize()), false, IDX_NORMAL, true, PRIV_RW);                            // Kernel data
+    vm_map(kernelPagetable, (void *)_stack_bottom, (void *)_stack_bottom, PAGE_ROUND_UP(kernelStackSize()), false, IDX_NORMAL, true, PRIV_RW);       // Stack
 
     // Setup and enable the mmu and virtual memory
     vm_setConfig(kernelPagetable);

@@ -4,7 +4,7 @@
 
 void pageAlloc_init();
 
-// Allocate a single page. Will never return NULL. (Out of memory triggers an assert)
+// Allocate a single physical page. Will never return NULL. (Out of memory triggers an assert)
 void *pageAlloc_alloc();
 
 // Free a previously allocated page

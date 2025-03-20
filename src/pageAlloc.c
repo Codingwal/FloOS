@@ -2,7 +2,7 @@
 #include "mem.h"
 #include "error.h"
 
-#define MAX_ALLOCS 512
+#define MAX_ALLOCS 1024
 typedef struct FreePagesStack
 {
     void *pages[MAX_ALLOCS];
@@ -13,8 +13,8 @@ static FreePagesStack stack;
 
 void pageAlloc_init()
 {
-    assert((uint64)MEM_START % PAGE_SIZE == 0, "MEM_START is not page aligned");
-    byte *ptr = (byte *)MEM_START;
+    assert((uint64)P_RAM_START % PAGE_SIZE == 0, "P_RAM_START is not page aligned");
+    byte *ptr = (byte *)P_RAM_START;
     for (uint i = 0; i < MAX_ALLOCS; i++)
     {
         stack.pages[i] = ptr;
