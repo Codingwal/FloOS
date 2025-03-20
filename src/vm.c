@@ -1,5 +1,5 @@
 #include "vm.h"
-#include "kalloc.h"
+#include "pageAlloc.h"
 #include "mem.h"
 #include "error.h"
 #include "sysregs.h"
@@ -45,7 +45,7 @@ static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr, bool alloc)
         else // Entry does not exist
         {
             assert(alloc, "entry does not exist but allocation is disallowed");
-            Pagetable *newTable = kalloc(); // kalloc allocates 4KB pages which is exactly the size of a page table
+            Pagetable *newTable = pageAlloc_alloc(); // pageAlloc_alloc allocates 4KB pages which is exactly the size of a page table
             assert(newTable != NULL, "newTable allocation failed");
             mem_set(newTable, 0, PAGE_SIZE);
 
@@ -123,9 +123,9 @@ void *vm_getVaRange(Pagetable *table, uint size)
     assert(size % PAGE_SIZE == 0, "size must be page aligned");
     size /= PAGE_SIZE;
 
-    const uint MAX_TRIES = 10000; // Stop after trying MAX_TRIES PTEs
+    const uint MAX_TRIES = 1000; // Stop after trying MAX_TRIES PTEs
     uint count = 0;
-    for (byte *va = 0; (uint64)va < MAX_TRIES * PAGE_SIZE; va += PAGE_SIZE)
+    for (byte *va = (byte *)MEM_START; (uint64)va < MEM_START + MAX_TRIES * PAGE_SIZE; va += PAGE_SIZE)
     {
         uint64 *entryPtr = vm_getPTE(table, va, true);
 
@@ -141,10 +141,11 @@ void *vm_getVaRange(Pagetable *table, uint size)
         // If there are size free PTEs in a row, return the virtual address
         if (count == size)
         {
-            return va - size * PAGE_SIZE;
+            return (void *)((uint64)va - size * PAGE_SIZE);
         }
     }
-    return NULL;
+    panic("Failed to get a free virtual address range");
+    return NULL; // Never reached
 }
 
 static void vm_setConfig(const Pagetable *kernelPagetable)
@@ -185,29 +186,17 @@ bool vm_isEnabled()
 void vm_init()
 {
     // Allocate L0 kernel pagetable
-    kernelPagetable = (Pagetable *)kalloc();
-    assert(kernelPagetable != NULL, "kalloc failed");
+    kernelPagetable = (Pagetable *)pageAlloc_alloc();
     mem_set(kernelPagetable, 0, PAGE_SIZE);
     kernelPagetable->entries[511] = PA2PTE(kernelPagetable) | TABLE_DESCRIPTOR | VALID; // Last entry points to itself. This is used to get the PAs of pagetables
 
     // Map kernel addresses (peripherals, kernel code, ...)
     vm_map(kernelPagetable, (void *)PERIPHERAL_BASE, (void *)PERIPHERAL_BASE, PAGE_ROUND_UP(PERIPHERAL_SIZE), false, IDX_DEVICE, true, PRIV_RW); // Peripherals (uart, ...)
-    print("Mapped peripherals\n");
-    vm_map(kernelPagetable, _text_start, _text_start, PAGE_ROUND_UP(kernelExecutableSize()), false, IDX_NORMAL, false, PRIV_R); // Kernel executable
-    print("Mapped kernel executable\n");
-    vm_map(kernelPagetable, _data_start, _data_start, PAGE_ROUND_UP(kernelDataSize()), false, IDX_NORMAL, true, PRIV_RW); // Kernel data
-    print("Mapped kernel data\n");
-    vm_map(kernelPagetable, (void *)_stack_bottom, (void *)_stack_bottom, PAGE_ROUND_UP(kernelStackSize()), false, IDX_NORMAL, true, PRIV_RW); // Stack
-    print("Mapped stack\n");
-
-    print("Prepared pagetables\n");
+    vm_map(kernelPagetable, _text_start, _text_start, PAGE_ROUND_UP(kernelExecutableSize()), false, IDX_NORMAL, false, PRIV_R);                  // Kernel executable
+    vm_map(kernelPagetable, _data_start, _data_start, PAGE_ROUND_UP(kernelDataSize()), false, IDX_NORMAL, true, PRIV_RW);                        // Kernel data
+    vm_map(kernelPagetable, (void *)_stack_bottom, (void *)_stack_bottom, PAGE_ROUND_UP(kernelStackSize()), false, IDX_NORMAL, true, PRIV_RW);   // Stack
 
     // Setup and enable the mmu and virtual memory
     vm_setConfig(kernelPagetable);
-    print("Prepared mmu\n");
     vm_enable();
-
-    print("Enabled mmu\n");
-
-    assert(vm_isEnabled(), "mmu is not enabled");
 }

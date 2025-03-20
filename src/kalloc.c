@@ -1,55 +1,83 @@
 #include "kalloc.h"
+#include "pageAlloc.h"
 #include "mem.h"
-#include "io.h"
-#include "error.h"
 #include "vm.h"
+#include "error.h"
+#include "io.h"
 
-typedef struct FreePage
+#define MAX_ALLOCS 512
+
+typedef struct Allocation
 {
-    struct FreePage *next;
-} FreePage;
+    void *virtualAddr;
+    uint size;
+} Allocation;
 
-static FreePage *freePages = NULL;
+Allocation allocs[MAX_ALLOCS];
 
-static void freeRange(void *start, void *end)
+void kalloc_init()
 {
-    char *ptr = (char *)PAGE_ROUND_UP((uint64)start);
-    end = (void *)PAGE_ROUND_DOWN((uint64)end);
-
-    for (; ptr < (char *)end; ptr += PAGE_SIZE)
+    assert(vm_isEnabled(), "virtual memory is not initialized");
+    for (uint i = 0; i < MAX_ALLOCS; i++)
     {
-        kfree(ptr);
+        allocs[i].virtualAddr = NULL;
+        allocs[i].size = 0;
     }
 }
 
-void kallocInit()
+void *kalloc(uint size)
 {
-    freeRange((void *)MEM_START, (void *)(MEM_START + 16 * 1024 * PAGE_SIZE)); // Prepare 16K pages
+    size = PAGE_ROUND_UP(size);
 
-    // Use this to free almost all available memory (slow!)
-    // freeRange((void *)MEM_START, (void *)MEM_END);
+    // Allocate physical memory and map it to virtual addresses
+    void *virtualAddr = vm_getVaRange(kernelPagetable, size);
+    for (byte *va = virtualAddr; (uint64)va < (uint64)virtualAddr + size; va += PAGE_SIZE)
+    {
+        void *pa = pageAlloc_alloc();
+        printf("pa: %x\n", (int)(int64)virtualAddr);
+        vm_map(kernelPagetable, va, pa, PAGE_SIZE, false, IDX_NORMAL, true, PRIV_RW);
+    }
+
+    // Store info in an empty slot in allocs
+    for (uint i = 0; true; i++)
+    {
+        assert(i != MAX_ALLOCS, "reached maximum allocation count");
+        if (allocs[i].virtualAddr != NULL)
+            continue;
+
+        allocs[i].virtualAddr = virtualAddr;
+        allocs[i].size = size;
+    }
+
+    return virtualAddr;
 }
 
-void *kalloc()
+void kfree(void *virtualAddr)
 {
-    if (freePages == NULL)
-        return NULL;
+    assert((uint64)virtualAddr % PAGE_SIZE == 0, "virtual address is not page aligned");
 
-    FreePage *page = freePages;
-    freePages = page->next;
-    return page;
-}
+    // Find allocation
+    Allocation *info = NULL;
+    for (uint i = 0; i < MAX_ALLOCS; i++)
+    {
+        if (allocs[i].virtualAddr == virtualAddr)
+        {
+            info = &allocs[i];
+            break;
+        }
+    }
+    assert(info != NULL, "invalid virtual address");
 
-void kfree(void *ptr)
-{
-    if (((uint64)ptr % PAGE_SIZE) != 0)
-        panic("ptr is not page aligned.");
+    // Free physical memory
+    for (byte *va = virtualAddr; (uint64)va < (uint64)virtualAddr + info->size; va += PAGE_SIZE)
+    {
+        pageAlloc_free(vm_va2pa(kernelPagetable, va));
+    }
 
-    // Zero out chunk
-    // mem_set(ptr, 0, PAGE_SIZE);
+    // Remove mappings
+    vm_unmap(kernelPagetable, virtualAddr, info->size);
 
-    // Insert page to freePages linked list
-    FreePage *page = ptr;
-    page->next = freePages;
-    freePages = page;
+    // Clear entry in allocs
+    info->virtualAddr = NULL;
+    info->size = 0;
 }
