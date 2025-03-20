@@ -63,12 +63,12 @@ el2_entry:
 
 el1_entry:
     // Set stack to start below the code section [____<-Stack|.text|.bss, .data, ...]
-    ldr x1, =_start
+    ldr x1, =_stack_top
     mov sp, x1
     
     // Clean the BSS section
-    ldr x1, = __bss_start
-    ldr w2, = __bss_size
+    ldr x1, = _bss_start
+    ldr w2, = _bss_size
 3:  cbz w2, 4f
     str xzr, [x1], #8   // xzr is the zero register
     sub w2, w2, #1

@@ -2,6 +2,7 @@
 #include "mem.h"
 #include "io.h"
 #include "error.h"
+#include "vm.h"
 
 typedef struct FreePage
 {
@@ -47,7 +48,7 @@ void kfree(void *ptr)
     // Zero out chunk
     // mem_set(ptr, 0, PAGE_SIZE);
 
-    // Insertt page to freePages linked list
+    // Insert page to freePages linked list
     FreePage *page = ptr;
     page->next = freePages;
     freePages = page;

@@ -15,18 +15,19 @@ enum
     MEM_START = 0x40000000,           // 0x4000_0000
     MEM_END = 0xFC000000,             // 0xFC00_0000
     MEM_SIZE = (MEM_END - MEM_START), // In bytes
-
-    STACK_TOP = 0x80000,                     // 0x8_0000
-    STACK_BOTTOM = 0x70000,                  // 0x1_0000
-    STACK_SIZE = (STACK_TOP - STACK_BOTTOM), // In bytes
 };
 
 #define PAGE_MASK (PAGE_SIZE - 1)
 #define PAGE_ROUND_DOWN(addr) ((addr) & ~PAGE_MASK)
-#define PAGE_ROUND_UP(addr) (PAGE_ROUND_DOWN(addr) + PAGE_SIZE)
+#define PAGE_ROUND_UP(addr) (PAGE_ROUND_DOWN(addr + PAGE_SIZE - 1))
 
 // The start and end of the kernel (executable and data)
 extern char _start[]; // 0x8_0000
 extern char _end[];
+static inline uint kernelExecutableSize() { return _end - _start; }
+
+extern char _stack_bottom[];
+extern char _stack_top[];
+static inline uint kernelStackSize() { return _stack_top - _stack_bottom; }
 
 void mem_set(void *start, byte value, uint size);
