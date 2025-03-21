@@ -47,6 +47,7 @@ void *kalloc(uint size)
 
         allocs[i].virtualAddr = virtualAddr;
         allocs[i].size = size;
+        break;
     }
 
     return virtualAddr;
@@ -66,7 +67,7 @@ void kfree(void *virtualAddr)
             break;
         }
     }
-    assert(info != NULL, "invalid virtual address");
+    assert(info != NULL, "could not find allocation");
 
     // Free physical memory
     for (byte *va = virtualAddr; (uint64)va < (uint64)virtualAddr + info->size; va += PAGE_SIZE)

@@ -20,7 +20,7 @@ void pageAlloc_init()
         stack.pages[i] = ptr;
         ptr += PAGE_SIZE;
     }
-    stack.index = 511;
+    stack.index = MAX_ALLOCS - 1;
 }
 
 void *pageAlloc_alloc()
@@ -36,4 +36,5 @@ void pageAlloc_free(void *ptr)
     assert((uint64)ptr % PAGE_SIZE == 0, "ptr is not page aligned");
     stack.index++;
     stack.pages[stack.index] = ptr;
+    assert(stack.index < MAX_ALLOCS, "freed more allocations than existing");
 }

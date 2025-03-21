@@ -7,7 +7,9 @@
 
 // See https://developer.arm.com/documentation/ddi0487/fc/
 // page 2571: virtual adress structure
-// page 2591: page table entry structure
+// page 2589: table descriptor structure
+// page 2591: page descriptor structure
+// page 2595: page descriptor attribute fields
 // page 2600: access permissions
 // 2598
 
@@ -23,43 +25,59 @@ Pagetable *kernelPagetable;
 #define PTE2PA(x) ((void *)(x & (BITMASK(48) - BITMASK(12))))
 #define PA2PTE(x) ((uint64)x)
 
+static uint64 vm_getFlags(enum MairIdxs mairIdx, bool pxn, enum AccessPerms ap)
+{
+    uint64 flags = 0;
+    flags |= (uint64)(pxn & 1) << 53;                   // [53] Privileged execute never
+    flags |= 1 << 10;                                   // [10] Access flag
+    flags |= (mairIdx == IDX_NORMAL) ? (0b11 << 8) : 0; // [9:8] Shareability field (Only normal, chacheable memory)
+    flags |= (ap & 0b11) << 6;                          // [7:6] Access permissions
+    flags |= 1 << 5;                                    // [5] Non secure access control (1 = access for secure and non-secure)
+    flags |= (mairIdx & 0b111) << 2;                    // [4:2] Attribute index
+    flags |= PAGE_DESCRIPTOR;                           // [1] Descriptor type
+    flags |= VALID;                                     // [0] Valid
+    return flags;
+}
+
 static void vm_createPagetables()
 {
+    uint64 flags = vm_getFlags(IDX_NORMAL_NO_CACHE, true, PRIV_RW);
+
     // Create L0 kernel pagetable (0TB - 256TB)
     kernelPagetable = (Pagetable *)pageAlloc_alloc();
     mem_set(kernelPagetable, 0, PAGE_SIZE);
-    kernelPagetable->entries[511] = PA2PTE(kernelPagetable) | TABLE_DESCRIPTOR | VALID; // Last entry points to itself. This is used to get the PAs of pagetables
+    kernelPagetable->entries[511] = PA2PTE(kernelPagetable) | flags; // Last entry points to itself. This is used to get the PAs of pagetables
 
     // Create L1 pagetable (0GB - 512GB)
     Pagetable *L1 = pageAlloc_alloc();
     mem_set(L1, 0, PAGE_SIZE);
-    kernelPagetable->entries[0] = PA2PTE(L1) | TABLE_DESCRIPTOR | VALID;
+    kernelPagetable->entries[0] = PA2PTE(L1) | flags;
 
     // Create L2 pagetable (0GB - 1GB)
     Pagetable *L2 = pageAlloc_alloc();
     mem_set(L2, 0, PAGE_SIZE);
-    L1->entries[0] = PA2PTE(L2) | TABLE_DESCRIPTOR | VALID;
+    L1->entries[0] = PA2PTE(L2) | flags;
 
     // Create L2 device pagetable (3GB - 4GB)
     Pagetable *L2periph = pageAlloc_alloc();
     mem_set(L2periph, 0, PAGE_SIZE);
-    L1->entries[3] = PA2PTE(L2periph) | TABLE_DESCRIPTOR | VALID;
+    L1->entries[3] = PA2PTE(L2periph) | flags;
 
     // L3 pagetables
     {
         // Stack and kernel (0MB - 2MB)
         Pagetable *kernel = pageAlloc_alloc();
-        L2->entries[0] = PA2PTE(kernel) | TABLE_DESCRIPTOR | VALID;
+        L2->entries[0] = PA2PTE(kernel) | flags;
         mem_set(kernel, 0, PAGE_SIZE);
 
         // RAM (2MB - 4MB)
         Pagetable *ram = pageAlloc_alloc();
-        L2->entries[1] = PA2PTE(ram) | TABLE_DESCRIPTOR | VALID;
+        L2->entries[1] = PA2PTE(ram) | flags;
         mem_set(ram, 0, PAGE_SIZE);
 
         // AUX & GPIO (4066MB - 4068MB) (4066MB = 3GB + 994MB; 994 / 2 = 497)
         Pagetable *aux = pageAlloc_alloc();
-        L2periph->entries[497] = PA2PTE(aux) | TABLE_DESCRIPTOR | VALID;
+        L2periph->entries[497] = PA2PTE(aux) | flags;
         mem_set(aux, 0, PAGE_SIZE);
     }
 }
@@ -73,8 +91,9 @@ static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr)
     {
         // Shift indices down and use 511 as the first index (kernelPagetable[511] points to kernelPagetable)
         uint64 va = (uint64)virtualAddr;
-        va >>= 9;
-        va = va & ((uint64)511 << 39);
+        va >>= 9;                  // loops once -> L1 index will be the actual L0 index and so on
+        va &= ~0b111;              // Remove the 3 least significant bits. [11:3] are the L3 index
+        va |= ((uint64)511 << 39); // L0 index needs to be the last entry, which is the loop entry
         return (uint64 *)va;
     }
 
@@ -116,15 +135,7 @@ void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, 
     byte *va = virtualAddr;
     byte *pa = physicalAddr;
 
-    uint64 flags = 0;
-    flags |= (uint64)(pxn & 1) << 53;                   // [53] Privileged execute never
-    flags |= 1 << 10;                                   // [10] Access flag
-    flags |= (mairIdx == IDX_NORMAL) ? (0b11 << 8) : 0; // [9:8] Shareability field (Only normal, chacheable memory)
-    flags |= (ap & 0b11) << 6;                          // [7:6] Access permissions
-    flags |= 1 << 5;                                    // [5] Non secure access control (1 = access for secure and non-secure)
-    flags |= (mairIdx & 0b111) << 2;                    // [4:2] Attribute index
-    flags |= PAGE_DESCRIPTOR;                           // [1] Descriptor type
-    flags |= VALID;                                     // [0] Valid
+    uint64 flags = vm_getFlags(mairIdx, pxn, ap);
 
     byte *lastPage = va + size;
     while (va < lastPage)
@@ -178,7 +189,7 @@ void *vm_getVaRange(Pagetable *table, uint size)
         // If there are size free PTEs in a row, return the virtual address
         if (count == size)
         {
-            return (void *)((uint64)va - size * PAGE_SIZE);
+            return (void *)((uint64)va - (size - 1) * PAGE_SIZE); // If size = 0, nothing needs to be subtracted, as va is incremented afterwards
         }
     }
     panic("Failed to get a free virtual address range");
