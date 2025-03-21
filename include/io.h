@@ -14,6 +14,10 @@ void print(const char *str);
 // %x: integer in hex
 // %b: integer in binary
 // %B: boolean
+// %p: pointer (same as %ulx but always with 16 digits)
+// Format modifiers:
+// u: unsigned
+// l: long
 void printf(const char *fmtStr, ...);
 void vprintf(const char *fmtStr, va_list args);
 
