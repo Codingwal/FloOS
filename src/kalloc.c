@@ -34,7 +34,6 @@ void *kalloc(uint size)
     for (byte *va = virtualAddr; (uint64)va < (uint64)virtualAddr + size; va += PAGE_SIZE)
     {
         void *pa = pageAlloc_alloc();
-        printf("pa: %x\n", (int)(int64)virtualAddr);
         vm_map(kernelPagetable, va, pa, PAGE_SIZE, false, IDX_NORMAL, true, PRIV_RW);
     }
 

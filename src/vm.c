@@ -4,6 +4,7 @@
 #include "error.h"
 #include "sysregs.h"
 #include "io.h"
+#include "cpu.h"
 
 // See https://developer.arm.com/documentation/ddi0487/fc/
 // page 2571: virtual adress structure
@@ -147,6 +148,8 @@ void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, 
         va += PAGE_SIZE;
         pa += PAGE_SIZE;
     }
+
+    cpu_invalidateTLB();
 }
 
 void vm_unmap(Pagetable *table, void *virtualAddr, uint size)
@@ -164,6 +167,8 @@ void vm_unmap(Pagetable *table, void *virtualAddr, uint size)
         *entry = 0;
         va += PAGE_SIZE;
     }
+
+    cpu_invalidateTLB();
 }
 
 void *vm_getVaRange(Pagetable *table, uint size)
@@ -198,12 +203,37 @@ void *vm_getVaRange(Pagetable *table, uint size)
 
 static void vm_setConfig(const Pagetable *kernelPagetable)
 {
-    // Set the address of the L0 pagetable
-    sysregs_ttbr0_el1_write((uint64)kernelPagetable);
-    sysregs_ttbr1_el1_write((uint64)kernelPagetable);
+    assert(((uint64)kernelPagetable & ~BITMASK(7)) == (uint64)kernelPagetable, "kernel pagetable is not sufficiently aligned");
 
-    // Set information about the virtual address structure
-    sysregs_tcr_el1_write(0x5b5103510);
+    // Set the address of the L0 pagetable
+    uint64 ttbr = (uint64)kernelPagetable;
+    ttbr |= 0; // Not shareable, not cacheable
+    sysregs_ttbr0_el1_write(ttbr);
+    sysregs_ttbr1_el1_write(ttbr); // ttbr1 is unused but why not
+
+    // Set information about the virtual address structure (was 0x5b5103510 before)
+    uint64 tcr = 0;
+    tcr |= (uint64)0 << 38;     // [38] TBI1 (1 = Top byte ignored in address calculation with ttbr1)
+    tcr |= (uint64)0 << 37;     // [38] TBI0 (1 = Top byte ignored in address calculation with ttbr0)
+    tcr |= (uint64)0 << 36;     // [36] AS the upper 8 bits of ttbrX are ignored by hardware
+    tcr |= (uint64)0b101 << 32; // [34:32] IPS Intermediate physical address size (0b101 = 48 bits)
+
+    tcr |= (uint64)0b10 << 30; // [31:30] TG1 Granule size for ttbr1 (0b10 = 4KB)
+    tcr |= (uint64)0b11 << 28; // [29:28] SH1 Shareabilty attribute for mem associated with ttbr1 (0b00 = innter shareable)
+    tcr |= (uint64)0b01 << 26; // [27:26] ORGN1 Outer cacheability attribute for mem associated with ttbr1 (0b01 = Write-Back Read-Allocate Write-Allocate Cacheable)
+    tcr |= (uint64)0b01 << 24; // [25:24] IRGN1 Innter cacheability attribute for mem associated with ttbr1 (0b01 = Write-Back Read-Allocate Write-Allocate Cacheable)
+    tcr |= (uint64)1 << 23;    // [23] EPD1 Translation table walk disable for ttbr1 (1 = disable ttbr1 translation table walks)
+    tcr |= (uint64)0 << 22;    // [22] A1 ttbr0 defines the ASID (ttbr1.ASID is ignored)
+    tcr |= (uint64)16 << 16;   // [21:16]T1SZ Size offset of the mem region addressed by ttbr1. region size = 2^(64-val) bytes. (= 48 bits)
+
+    tcr |= (uint64)0b00 << 14; // [15:14] TG0 Granule size for ttbr0 (0b00 = 4KB)
+    tcr |= (uint64)0b11 << 12; // [13:12] SH0 Shareabilty attribute for mem associated with ttbr0 (0b00 = inner shareable)
+    tcr |= (uint64)0b01 << 10; // [11:10] ORGN0 Outer cacheability attribute for mem associated with ttbr0 (0b01 = Write-Back Read-Allocate Write-Allocate Cacheable)
+    tcr |= (uint64)0b01 << 8;  // [9:8] IRGN0 Inner cacheability attribute for mem associated with ttbr0 (0b01 = Write-Back Read-Allocate Write-Allocate Cacheable)
+    tcr |= (uint64)0 << 7;     // [7] EPD0 Translation table walk disable for ttbr0 (0 = enable ttbr0 translation table walks)
+    tcr |= (uint64)16;         // [5:0] T0SZ Size offset of the mem region addressed by ttbr0. region size = 2^(64-val) bytes. (= 48 bits)
+
+    sysregs_tcr_el1_write(tcr);
 
     // Set memory attributes
     // https://documentation-service.arm.com/static/63a43e333f28e5456434e18b (learn_the_architecture_-_aarch64_memory_attributes_and_properties)
@@ -212,7 +242,7 @@ static void vm_setConfig(const Pagetable *kernelPagetable)
     byte device = 0;
     sysregs_mair_el1_write((normal << (IDX_NORMAL * 8)) | (normalNoCache << (IDX_NORMAL_NO_CACHE * 8)) | (device << (IDX_DEVICE * 8)));
 
-    asm volatile("isb\n");
+    cpu_instrSyncBarrier();
 }
 
 void vm_enable()
@@ -222,7 +252,7 @@ void vm_enable()
     sysControlReg |= 0b1 << 12; // Enable instruction caches at el1
     sysregs_sctlr_el1_write(sysControlReg);
 
-    asm volatile("isb\n");
+    cpu_instrSyncBarrier();
 }
 
 bool vm_isEnabled()
