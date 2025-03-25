@@ -11,7 +11,7 @@ typedef struct FreePagesStack
 
 static FreePagesStack stack;
 
-void pageAlloc_init()
+void pageAlloc_init(void)
 {
     assert((uint64)P_RAM_START % PAGE_SIZE == 0, "P_RAM_START is not page aligned");
     byte *ptr = (byte *)P_RAM_START;
@@ -23,7 +23,7 @@ void pageAlloc_init()
     stack.index = MAX_ALLOCS - 1;
 }
 
-void *pageAlloc_alloc()
+void *pageAlloc_alloc(void)
 {
     assert(stack.index != -1, "no more free pages");
     void *ptr = stack.pages[stack.index];

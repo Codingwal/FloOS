@@ -15,7 +15,7 @@ typedef struct Allocation
 
 Allocation allocs[MAX_ALLOCS];
 
-void kalloc_init()
+void kalloc_init(void)
 {
     assert(vm_isEnabled(), "virtual memory is not initialized");
     for (uint i = 0; i < MAX_ALLOCS; i++)

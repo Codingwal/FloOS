@@ -6,7 +6,7 @@
 #include "pageAlloc.h"
 #include "kalloc.h"
 
-int main()
+int main(void)
 {
     uart_init();
     print("Initialized uart\n");

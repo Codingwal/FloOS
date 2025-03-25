@@ -24,12 +24,12 @@ enum AccessPerms
 };
 
 // Create kernel page tables and switch to the virtual adress space
-void vm_init();
+void vm_init(void);
 
 // Enable / disable virtual memory
-void vm_enable();
-void vm_disable();
-bool vm_isEnabled();
+void vm_enable(void);
+void vm_disable(void);
+bool vm_isEnabled(void);
 
 // Map a region of virtual memory to a region of physical memory
 /// @param mairIdx Index in the memory attribute indirection register

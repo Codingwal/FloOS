@@ -8,7 +8,7 @@ void printChar(char c)
     uart_writeByte(c);
 }
 
-char readChar()
+char readChar(void)
 {
     return uart_readByte();
 }

@@ -31,14 +31,14 @@ extern char _end[];   // = _data_end
 
 extern char _text_start[]; // Page aligned
 extern char _text_end[];
-static inline uint kernelExecutableSize() { return _text_end - _text_start; }
+static inline uint kernelExecutableSize(void) { return _text_end - _text_start; }
 
 extern char _data_start[]; // Page aligned (First empty page after _text_end (PAGE_ROUND_DOWN(_text_end) + 1))
 extern char _data_end[];
-static inline uint kernelDataSize() { return _data_end - _data_start; }
+static inline uint kernelDataSize(void) { return _data_end - _data_start; }
 
 extern char _stack_bottom[]; // Page aligned
 extern char _stack_top[];    // Page aligned
-static inline uint kernelStackSize() { return _stack_top - _stack_bottom; }
+static inline uint kernelStackSize(void) { return _stack_top - _stack_bottom; }
 
 void mem_set(void *start, byte value, uint size);

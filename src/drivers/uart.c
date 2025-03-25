@@ -21,7 +21,7 @@ enum
 
 #define AUX_MU_BAUD(baud) ((AUX_UART_CLOCK / (baud * 8)) - 1)
 
-void uart_init()
+void uart_init(void)
 {
     mmio_write(AUX_ENABLES, 1); // enable UART1
     mmio_write(AUX_MU_IER_REG, 0);
@@ -36,8 +36,8 @@ void uart_init()
     mmio_write(AUX_MU_CNTL_REG, 3); // enable RX/TX
 }
 
-static bool uart_isWriteByteReady() { return mmio_read(AUX_MU_LSR_REG) & 0x20; }
-static bool uart_isReadByteReady() { return mmio_read(AUX_MU_LSR_REG) & 0x01; }
+static bool uart_isWriteByteReady(void) { return mmio_read(AUX_MU_LSR_REG) & 0x20; }
+static bool uart_isReadByteReady(void) { return mmio_read(AUX_MU_LSR_REG) & 0x01; }
 
 void uart_writeByte(byte b)
 {
@@ -46,7 +46,7 @@ void uart_writeByte(byte b)
     }
     mmio_write(AUX_MU_IO_REG, (uint)b);
 }
-byte uart_readByte()
+byte uart_readByte(void)
 {
     while (!uart_isReadByteReady())
     {

@@ -40,7 +40,7 @@ static uint64 vm_getFlags(enum MairIdxs mairIdx, bool pxn, enum AccessPerms ap)
     return flags;
 }
 
-static void vm_createPagetables()
+static void vm_createPagetables(void)
 {
     uint64 flags = vm_getFlags(IDX_NORMAL_NO_CACHE, true, PRIV_RW);
 
@@ -245,7 +245,7 @@ static void vm_setConfig(const Pagetable *kernelPagetable)
     cpu_instrSyncBarrier();
 }
 
-void vm_enable()
+void vm_enable(void)
 {
     uint64 sysControlReg = cpu_sysregs_sctlr_el1_read();
     sysControlReg |= 0b1;       // Enable virtual memory
@@ -255,13 +255,13 @@ void vm_enable()
     cpu_instrSyncBarrier();
 }
 
-bool vm_isEnabled()
+bool vm_isEnabled(void)
 {
     uint64 sysControlReg = cpu_sysregs_sctlr_el1_read();
     return sysControlReg & 0b1; // Check the virtual memory enabled bit
 }
 
-void vm_init()
+void vm_init(void)
 {
     vm_createPagetables();
 

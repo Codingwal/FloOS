@@ -21,5 +21,5 @@ void print(const char *str);
 void printf(const char *fmtStr, ...);
 void vprintf(const char *fmtStr, va_list args);
 
-char readChar();
+char readChar(void);
 void readLine(char *dest, uint maxCharCount);
