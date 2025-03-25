@@ -34,10 +34,6 @@ char *string_findString(const char *str, const char *seq);
 /// @return A pointer to the first occurence of c or NULL if c isn't present.
 char *string_findFromBack(const char *str, uint strLength, char c);
 
-/// @brief Creates a copy of str with size length or string_length(str), depending on what is smaller.
-/// @return The newly allocated string.
-char *string_substring(const char *str, uint length);
-
 /// @brief Reverses the string
 void string_reverse(char *str, uint length);
 

@@ -1,5 +1,4 @@
 #include "string.h"
-#include "alloc.h"
 #include "error.h"
 
 uint string_length(const char *str)
@@ -91,24 +90,6 @@ char *string_findFromBack(const char *str, uint strLength, char c)
         it--;
     }
     return (char *)it;
-}
-
-char *string_substring(const char *str, uint length)
-{
-    if (!str || length == 0)
-        return NULL;
-
-    char *res = alloc(length + 1);
-    if (!res)
-        return NULL;
-
-    uint i = 0;
-    for (; i < length && str[i] != '\0'; i++)
-    {
-        res[i] = str[i];
-    }
-    res[i] = '\0';
-    return res;
 }
 
 void string_reverse(char *str, uint length)
