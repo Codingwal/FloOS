@@ -12,6 +12,7 @@ An operating system for the rpi4b, written in c
 - merge cpu.h and sysregs.h
 - void instead of no params
 
+- interrupts
 - usb
 
 

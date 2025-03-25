@@ -4,8 +4,8 @@ SFILES = $(wildcard src/*.s)
 OSFILES = $(SFILES:.s=.o)
 GCCPATH = arm-gnu-toolchain-14.2.rel1-mingw-w64-x86_64-aarch64-none-elf/bin
 
-GCCFLAGS-OS = -ffreestanding -nostdinc -nostdlib -nostartfiles -DOS=1
-GCCFLAGS = -Iinclude -Wall -O2 -Werror -Wextra -mgeneral-regs-only
+GCCFLAGS-OS = -ffreestanding -nostdinc -nostdlib -nostartfiles -DOS=1 -mgeneral-regs-only
+GCCFLAGS = -Iinclude -Wall -O2 -Werror -Wextra 
 
 # Create kernel8.img
 os: kernel8.img

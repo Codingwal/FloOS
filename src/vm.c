@@ -2,7 +2,7 @@
 #include "pageAlloc.h"
 #include "mem.h"
 #include "error.h"
-#include "sysregs.h"
+#include "cpu.h"
 #include "io.h"
 #include "cpu.h"
 
@@ -208,8 +208,8 @@ static void vm_setConfig(const Pagetable *kernelPagetable)
     // Set the address of the L0 pagetable
     uint64 ttbr = (uint64)kernelPagetable;
     ttbr |= 0; // Not shareable, not cacheable
-    sysregs_ttbr0_el1_write(ttbr);
-    sysregs_ttbr1_el1_write(ttbr); // ttbr1 is unused but why not
+    cpu_sysregs_ttbr0_el1_write(ttbr);
+    cpu_sysregs_ttbr1_el1_write(ttbr); // ttbr1 is unused but why not
 
     // Set information about the virtual address structure (was 0x5b5103510 before)
     uint64 tcr = 0;
@@ -233,31 +233,31 @@ static void vm_setConfig(const Pagetable *kernelPagetable)
     tcr |= (uint64)0 << 7;     // [7] EPD0 Translation table walk disable for ttbr0 (0 = enable ttbr0 translation table walks)
     tcr |= (uint64)16;         // [5:0] T0SZ Size offset of the mem region addressed by ttbr0. region size = 2^(64-val) bytes. (= 48 bits)
 
-    sysregs_tcr_el1_write(tcr);
+    cpu_sysregs_tcr_el1_write(tcr);
 
     // Set memory attributes
     // https://documentation-service.arm.com/static/63a43e333f28e5456434e18b (learn_the_architecture_-_aarch64_memory_attributes_and_properties)
     byte normal = 0xFF;
     byte normalNoCache = 0b01000100;
     byte device = 0;
-    sysregs_mair_el1_write((normal << (IDX_NORMAL * 8)) | (normalNoCache << (IDX_NORMAL_NO_CACHE * 8)) | (device << (IDX_DEVICE * 8)));
+    cpu_sysregs_mair_el1_write((normal << (IDX_NORMAL * 8)) | (normalNoCache << (IDX_NORMAL_NO_CACHE * 8)) | (device << (IDX_DEVICE * 8)));
 
     cpu_instrSyncBarrier();
 }
 
 void vm_enable()
 {
-    uint64 sysControlReg = sysregs_sctlr_el1_read();
+    uint64 sysControlReg = cpu_sysregs_sctlr_el1_read();
     sysControlReg |= 0b1;       // Enable virtual memory
     sysControlReg |= 0b1 << 12; // Enable instruction caches at el1
-    sysregs_sctlr_el1_write(sysControlReg);
+    cpu_sysregs_sctlr_el1_write(sysControlReg);
 
     cpu_instrSyncBarrier();
 }
 
 bool vm_isEnabled()
 {
-    uint64 sysControlReg = sysregs_sctlr_el1_read();
+    uint64 sysControlReg = cpu_sysregs_sctlr_el1_read();
     return sysControlReg & 0b1; // Check the virtual memory enabled bit
 }
 
