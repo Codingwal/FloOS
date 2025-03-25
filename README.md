@@ -9,7 +9,6 @@ An operating system for the rpi4b, written in c
     - Replace the existing kernel8.img file on the sd card
 
 ## TODO:
-- merge cpu.h and sysregs.h
 - void instead of no params
 
 - interrupts
