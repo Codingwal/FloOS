@@ -4,6 +4,13 @@ typedef unsigned int uint;
 typedef unsigned char byte;
 typedef long long int int64;
 typedef long long unsigned int uint64;
+typedef int int32;
+typedef unsigned int uint32;
+
+_Static_assert(sizeof(int64) == 8, "size error");
+_Static_assert(sizeof(uint64) == 8, "size error");
+_Static_assert(sizeof(int32) == 4, "size error");
+_Static_assert(sizeof(uint32) == 4, "size error");
 
 #ifndef bool
 #define bool _Bool

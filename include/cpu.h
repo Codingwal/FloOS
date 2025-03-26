@@ -70,6 +70,28 @@ inline static void cpu_sysregs_mair_el1_write(uint64 value)
     asm volatile("msr mair_el1, %0\n" : : "r"(value));
 }
 
+inline static uint64 cpu_sysregs_vbar_el1_read(void)
+{
+    uint64 value;
+    asm volatile("mrs %0, vbar_el1\n" : "=r"(value) :);
+    return value;
+}
+inline static void cpu_sysregs_vbar_el1_write(uint64 value)
+{
+    asm volatile("msr vbar_el1, %0\n" : : "r"(value));
+}
+
+inline static uint64 cpu_sysregs_vtor_read(void)
+{
+    uint64 value;
+    asm volatile("mrs %0, vtor\n" : "=r"(value) :);
+    return value;
+}
+inline static void cpu_sysregs_vtor_write(uint64 value)
+{
+    asm volatile("msr vtor, %0\n" : : "r"(value));
+}
+
 inline static uint64 cpu_sysregs_CurrentEL_read(void)
 {
     uint64 value;
