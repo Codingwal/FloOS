@@ -6,13 +6,6 @@
 
 extern byte exceptionVector[];
 
-void exceptions_undefined(void)
-{
-    print("Undefined exception\n");
-    exceptions_unifiedHandler();
-}
-
-// 0b111100 = BRK instruction execution in AArch64 state
 static void exceptions_unifiedHandler(void)
 {
     uint64 esr = cpu_sysregs_esr_el1_read();
@@ -21,6 +14,13 @@ static void exceptions_unifiedHandler(void)
     printf("Exception class = %b; Instruction specific syndrome = %b", ec, iss);
     cpu_exceptionReturn();
 }
+
+void exceptions_undefined(void)
+{
+    print("Undefined exception\n");
+    exceptions_unifiedHandler();
+}
+
 void exceptions_sync(void)
 {
     print("Synchronous exception\n");

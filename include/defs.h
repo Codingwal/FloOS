@@ -40,6 +40,10 @@ typedef enum ExitCode
 // Creates a bitmask where the first n bits are turned on
 #define BITMASK(n) (((uint64)1 << n) - 1)
 
+// Round x to the next / previous multiple of n (n must be a power of 2)
+#define ROUND_DOWN(x, n) ((x) & ~(n - 1))
+#define ROUND_UP(x, n) (ROUND_DOWN(x + n - 1, n))
+
 // Useful standard macros
 
 // NARGS counts the number of args

@@ -44,42 +44,46 @@ static void vm_createPagetables(void)
 {
     uint64 flags = vm_getFlags(IDX_NORMAL_NO_CACHE, true, PRIV_RW);
 
-    // Create L0 kernel pagetable (0TB - 256TB)
+    // Create L0 kernel pagetable
     kernelPagetable = (Pagetable *)pageAlloc_alloc();
     mem_set(kernelPagetable, 0, PAGE_SIZE);
     kernelPagetable->entries[511] = PA2PTE(kernelPagetable) | flags; // Last entry points to itself. This is used to get the PAs of pagetables
 
-    // Create L1 pagetable (0GB - 512GB)
+    // Create L1 pagetable (0x00_0000_0000 - 0x80_0000_0000)
     Pagetable *L1 = pageAlloc_alloc();
     mem_set(L1, 0, PAGE_SIZE);
     kernelPagetable->entries[0] = PA2PTE(L1) | flags;
 
-    // Create L2 pagetable (0GB - 1GB)
+    // Create L2 pagetable (0x0000_0000 - 0x4000_0000)
     Pagetable *L2 = pageAlloc_alloc();
     mem_set(L2, 0, PAGE_SIZE);
     L1->entries[0] = PA2PTE(L2) | flags;
 
-    // Create L2 device pagetable (3GB - 4GB)
+    // Create L2 device pagetable (0x0_C000_0000 - 0x1_0000_0000)
     Pagetable *L2periph = pageAlloc_alloc();
     mem_set(L2periph, 0, PAGE_SIZE);
     L1->entries[3] = PA2PTE(L2periph) | flags;
 
     // L3 pagetables
     {
-        // Stack and kernel (0MB - 2MB)
+        // Stack and kernel (0x00_0000 - 0x20_0000)
         Pagetable *kernel = pageAlloc_alloc();
-        L2->entries[0] = PA2PTE(kernel) | flags;
         mem_set(kernel, 0, PAGE_SIZE);
+        L2->entries[0] = PA2PTE(kernel) | flags;
 
-        // RAM (2MB - 4MB)
+        // RAM (0x20_0000 - 0x40_0000)
         Pagetable *ram = pageAlloc_alloc();
-        L2->entries[1] = PA2PTE(ram) | flags;
         mem_set(ram, 0, PAGE_SIZE);
+        L2->entries[1] = PA2PTE(ram) | flags;
 
-        // AUX & GPIO (4066MB - 4068MB) (4066MB = 3GB + 994MB; 994 / 2 = 497)
-        Pagetable *aux = pageAlloc_alloc();
-        L2periph->entries[497] = PA2PTE(aux) | flags;
-        mem_set(aux, 0, PAGE_SIZE);
+        // Peripherals
+        uint c = ((ROUND_UP(PERIPHERAL_END, 0x200000) - 0xC0000000) / 0x200000); // c = (endAddr - prevTableStart) / bytesPerEntry
+        for (uint i = ((PERIPHERAL_BASE - 0xC0000000) / 0x200000); i < c; i++)   // i = (firstAddr - prevTableStart) / bytesPerEntry
+        {
+            Pagetable *table = pageAlloc_alloc();
+            L2periph->entries[i] = PA2PTE(table) | flags;
+            mem_set(table, 0, PAGE_SIZE);
+        }
     }
 }
 
@@ -266,10 +270,10 @@ void vm_init(void)
     vm_createPagetables();
 
     // Map kernel addresses (peripherals, kernel code, ...)
-    vm_map(kernelPagetable, (void *)LOWEST_USED_PERIPHERAL, (void *)LOWEST_USED_PERIPHERAL, USED_PERIPHERAL_SIZE, false, IDX_DEVICE, true, PRIV_RW); // Peripherals (uart, ...)
-    vm_map(kernelPagetable, _text_start, _text_start, PAGE_ROUND_UP(kernelExecutableSize()), false, IDX_NORMAL, false, PRIV_R);                      // Kernel executable
-    vm_map(kernelPagetable, _data_start, _data_start, PAGE_ROUND_UP(kernelDataSize()), false, IDX_NORMAL, true, PRIV_RW);                            // Kernel data
-    vm_map(kernelPagetable, (void *)_stack_bottom, (void *)_stack_bottom, PAGE_ROUND_UP(kernelStackSize()), false, IDX_NORMAL, true, PRIV_RW);       // Stack
+    vm_map(kernelPagetable, (void *)PERIPHERAL_BASE, (void *)PERIPHERAL_BASE, PERIPHERAL_SIZE, false, IDX_DEVICE, true, PRIV_RW);              // Peripherals (uart, timer, ...)
+    vm_map(kernelPagetable, _text_start, _text_start, PAGE_ROUND_UP(kernelExecutableSize()), false, IDX_NORMAL, false, PRIV_R);                // Kernel executable
+    vm_map(kernelPagetable, _data_start, _data_start, PAGE_ROUND_UP(kernelDataSize()), false, IDX_NORMAL, true, PRIV_RW);                      // Kernel data
+    vm_map(kernelPagetable, (void *)_stack_bottom, (void *)_stack_bottom, PAGE_ROUND_UP(kernelStackSize()), false, IDX_NORMAL, true, PRIV_RW); // Stack
 
     // Setup and enable the mmu and virtual memory
     vm_setConfig(kernelPagetable);
