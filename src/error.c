@@ -19,8 +19,12 @@ void _panic(const char *errorMessage, const char *file, int line, const char *fu
     vprintf(errorMessage, args);
     va_end(args);
 
-    print("\nStopping kernel.\n");
+    halt();
+}
 
+void halt(void)
+{
+    print("\nStopping kernel.\n");
     while (true)
     {
     }

@@ -4,7 +4,7 @@
 
 // Included because they need to be initialized
 #include "drivers/uart.h"
-#include "interrupts.h"
+#include "exceptions.h"
 #include "pageAlloc.h"
 #include "vm.h"
 #include "kalloc.h"
@@ -16,7 +16,7 @@ int main(void)
 
     assert(cpu_getExceptionLevel() == 1, "exception level should be EL1");
 
-    interrupts_init();
+    exceptions_init();
     print("Initialized interrupts\n");
 
     pageAlloc_init();
