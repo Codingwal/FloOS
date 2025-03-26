@@ -22,20 +22,13 @@ int main(void)
     pageAlloc_init();
     print("Initialized page allocator\n");
 
-    // vm_init();
-    // print("Enabled the mmu and virtual memory\n");
+    vm_init();
+    print("Enabled the mmu and virtual memory\n");
 
-    // kalloc_init();
-    // print("Initialized kernel allocator\n");
+    kalloc_init();
+    print("Initialized kernel allocator\n");
 
     print("\nFinished initializing flOSse.\n\n");
 
-    print("Test 1\n");
-    int a = 0;
-    int b = 10 / a;
-    printf("Success (a = %d)\n", b);
-
-    while (true)
-    {
-    }
+    halt();
 }
