@@ -121,17 +121,17 @@ static void printPtr(void *ptr)
     }
 }
 
-static void printInt(va_list args, bool u, bool l, uint base)
+static void printInt(va_list *args, bool u, bool l, uint base)
 {
     char tmp[50];
     if (u && l)
-        uintToString(tmp, va_arg(args, uint64), base);
+        uintToString(tmp, va_arg(*args, uint64), base);
     else if (u)
-        uintToString(tmp, va_arg(args, uint), base);
+        uintToString(tmp, va_arg(*args, uint), base);
     else if (l)
-        intToString(tmp, va_arg(args, int64), base);
+        intToString(tmp, va_arg(*args, int64), base);
     else
-        intToString(tmp, va_arg(args, int), base);
+        intToString(tmp, va_arg(*args, int), base);
     print(tmp);
 }
 
@@ -176,15 +176,15 @@ void vprintf(const char *str, va_list args)
             break;
         case 'd':
         case 'i':
-            printInt(args, u, l, 10);
+            printInt(&args, u, l, 10);
             break;
         case 'x':
             print("0x");
-            printInt(args, u, l, 16);
+            printInt(&args, u, l, 16);
             break;
         case 'b':
             print("0b");
-            printInt(args, u, l, 2);
+            printInt(&args, u, l, 2);
             break;
         case 'B':
             assert(!l && !u, "invalid format modifier (format specifier = %B)");
