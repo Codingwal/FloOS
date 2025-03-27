@@ -77,8 +77,17 @@ static void vm_createPagetables(void)
         L2->entries[1] = PA2PTE(ram) | flags;
 
         // Peripherals
-        uint c = ((ROUND_UP(PERIPHERAL_END, 0x200000) - 0xC0000000) / 0x200000); // c = (endAddr - prevTableStart) / bytesPerEntry
-        for (uint i = ((PERIPHERAL_BASE - 0xC0000000) / 0x200000); i < c; i++)   // i = (firstAddr - prevTableStart) / bytesPerEntry
+        uint c = (V_RAM_END / 0x200000);                    // c = endAddr / bytesPerEntry
+        for (uint i = (V_RAM_START / 0x200000); i < c; i++) // i = firstAddr / bytesPerEntry
+        {
+            Pagetable *table = pageAlloc_alloc();
+            L2->entries[i] = PA2PTE(table) | flags;
+            mem_set(table, 0, PAGE_SIZE);
+        }
+
+        // Peripherals
+        c = ((ROUND_UP(PERIPHERAL_END, 0x200000) - 0xC0000000) / 0x200000);    // c = (endAddr - prevTableStart) / bytesPerEntry
+        for (uint i = ((PERIPHERAL_BASE - 0xC0000000) / 0x200000); i < c; i++) // i = (firstAddr - prevTableStart) / bytesPerEntry
         {
             Pagetable *table = pageAlloc_alloc();
             L2periph->entries[i] = PA2PTE(table) | flags;

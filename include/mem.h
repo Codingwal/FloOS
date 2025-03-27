@@ -14,8 +14,8 @@ enum
     P_RAM_END = 0xFC000000,                 // 0xFC00_0000
     P_RAM_SIZE = (P_RAM_END - P_RAM_START), // In bytes
 
-    V_RAM_START = 0x200000, // 0x20_0000 (after 2MB)
-    V_RAM_SIZE = 0x100000,  // 0x10_0000 (1MB)
+    V_RAM_START = 0x200000, // 0x20_0000 (2MiB)
+    V_RAM_SIZE = 0x800000,  // 0x80_0000 (8MiB)
     V_RAM_END = (V_RAM_START + V_RAM_SIZE)
 };
 

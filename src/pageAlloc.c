@@ -2,7 +2,7 @@
 #include "mem.h"
 #include "error.h"
 
-#define MAX_ALLOCS 1024
+#define MAX_ALLOCS 16384
 typedef struct FreePagesStack
 {
     void *pages[MAX_ALLOCS];
