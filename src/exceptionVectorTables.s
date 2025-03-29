@@ -13,10 +13,10 @@ exceptionVector:
     EXVEC_ENTRY exceptions_undefined
 
     // Current EL using sp_elX
-    EXVEC_ENTRY exceptions_sync     // Synchronous exception
-    EXVEC_ENTRY exceptions_irq      // Interrupt request
-    EXVEC_ENTRY exceptions_fiq      // Fast interrupt request
-    EXVEC_ENTRY exceptions_serror   // System error
+    EXVEC_ENTRY exceptions_sync         // Synchronous exception
+    EXVEC_ENTRY interrupts_handleIRQ    // Interrupt request
+    EXVEC_ENTRY exceptions_fiq          // Fast interrupt request
+    EXVEC_ENTRY exceptions_serror       // System error
 
     // Lower EL, at least one lower EL is AArch64
     EXVEC_ENTRY exceptions_undefined

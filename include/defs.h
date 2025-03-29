@@ -7,6 +7,8 @@ typedef long long unsigned int uint64;
 typedef int int32;
 typedef unsigned int uint32;
 
+typedef void (*Func)(void);
+
 _Static_assert(sizeof(byte) == 1, "size error");
 _Static_assert(sizeof(int64) == 8, "size error");
 _Static_assert(sizeof(uint64) == 8, "size error");

@@ -39,9 +39,9 @@ uint timer_getTimer(void)
     return TIMER->value;
 }
 
-void timer_check(void)
+static void timer_handleIRQ(void)
 {
-    printf("%B\n", TIMER->maskedIrq & 1);
+    print("Handling timer IRQ.\n");
 }
 
 void timer_init(void)
@@ -65,4 +65,5 @@ void timer_init(void)
     TIMER->preDiv = preDiv;
 
     interrupts_enableARMCInterrupt(0);
+    interrupts_addARMCInterruptHandler(0, timer_handleIRQ);
 }
