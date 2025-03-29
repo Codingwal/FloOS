@@ -7,6 +7,7 @@ typedef long long unsigned int uint64;
 typedef int int32;
 typedef unsigned int uint32;
 
+_Static_assert(sizeof(byte) == 1, "size error");
 _Static_assert(sizeof(int64) == 8, "size error");
 _Static_assert(sizeof(uint64) == 8, "size error");
 _Static_assert(sizeof(int32) == 4, "size error");
@@ -22,6 +23,8 @@ _Static_assert(sizeof(uint32) == 4, "size error");
 #define NULL 0
 #endif
 
+#define offsetof(TYPE, MEMBER) __builtin_offsetof(TYPE, MEMBER)
+
 typedef enum ExitCode
 {
     // 0 - 9: Standard
@@ -32,10 +35,6 @@ typedef enum ExitCode
 
     // 10 - 19: FileSystem
 } ExitCode;
-
-#define RETURN_ON_FAILURE(x) \
-    if (x != SUCCESS)        \
-        return FAILURE;
 
 // Creates a bitmask where the first n bits are turned on
 #define BITMASK(n) (((uint64)1 << n) - 1)
@@ -64,3 +63,24 @@ typedef enum ExitCode
 #define APPLY_6(m, x1, x2, x3, x4, x5, x6) m(x1), m(x2), m(x3), m(x4), m(x5), m(x6)
 #define APPLY_7(m, x1, x2, x3, x4, x5, x6, x7) m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7)
 #define APPLY_8(m, x1, x2, x3, x4, x5, x6, x7, x8) m(x1), m(x2), m(x3), m(x4), m(x5), m(x6), m(x7), m(x8)
+
+// Useful for creating structs with specific alignments
+#define OFFSET_STRUCT(name, members) \
+    union                            \
+    {                                \
+        members                      \
+    } name
+
+// User OFFSET_MEMBER_0 if offset is zero
+#define OFFSET_MEMBER(offset, member)  \
+    struct __attribute__((__packed__)) \
+    {                                  \
+        char pad##offset[offset];      \
+        member;                        \
+    }
+
+#define OFFSET_MEMBER_0(member)        \
+    struct __attribute__((__packed__)) \
+    {                                  \
+        member;                        \
+    }

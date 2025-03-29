@@ -17,10 +17,10 @@ enum MairIdxs
 };
 enum AccessPerms
 {
-    PRIV_RW = 0b00,
-    RW = 0b01,
-    PRIV_R = 0b10,
-    R_PRIV_R = 0b11,
+    PRIV_RW = 0,
+    RW = 1,
+    PRIV_R = 2,
+    R_PRIV_R = 3,
 };
 
 // Create kernel page tables and switch to the virtual adress space

@@ -113,7 +113,7 @@ static void printPtr(void *ptr)
         else
             printChar(top - 10 + 'a');
 
-        byte bottom = arr[i] & 0b1111;
+        byte bottom = arr[i] & 0xF;
         if (bottom < 10)
             printChar(bottom + '0');
         else

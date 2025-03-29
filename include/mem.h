@@ -2,22 +2,19 @@
 
 #include "defs.h"
 
-enum
-{
-    PAGE_SIZE = 4096,
+#define PAGE_SIZE 4096
 
-    PERIPHERAL_BASE = 0xFE000000, // 0xFE00_0000
-    PERIPHERAL_END = 0xFE216000,  // 0xFE21_6000
-    PERIPHERAL_SIZE = (PERIPHERAL_END - PERIPHERAL_BASE),
+#define PERIPHERAL_BASE 0xFE000000                         // 0xFE00_0000
+#define PERIPHERAL_END 0xFE216000                          // 0xFE21_6000
+#define PERIPHERAL_SIZE (PERIPHERAL_END - PERIPHERAL_BASE) // In bytes
 
-    P_RAM_START = 0x40000000,               // 0x4000_0000
-    P_RAM_END = 0xFC000000,                 // 0xFC00_0000
-    P_RAM_SIZE = (P_RAM_END - P_RAM_START), // In bytes
+#define P_RAM_START 0x40000000               // 0x4000_0000
+#define P_RAM_END 0xFC000000                 // 0xFC00_0000
+#define P_RAM_SIZE (P_RAM_END - P_RAM_START) // In bytes
 
-    V_RAM_START = 0x200000, // 0x20_0000 (2MiB)
-    V_RAM_SIZE = 0x800000,  // 0x80_0000 (8MiB)
-    V_RAM_END = (V_RAM_START + V_RAM_SIZE)
-};
+#define V_RAM_START 0x200000                 // 0x20_0000 (2MiB)
+#define V_RAM_SIZE 0x800000                  // 0x80_0000 (8MiB)
+#define V_RAM_END (V_RAM_START + V_RAM_SIZE) // In bytes
 
 #define PAGE_MASK (PAGE_SIZE - 1)
 #define PAGE_ROUND_DOWN(addr) ROUND_DOWN(addr, PAGE_SIZE)
