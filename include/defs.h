@@ -66,7 +66,7 @@ typedef enum ExitCode
 
 // Useful for creating structs with specific alignments
 #define OFFSET_STRUCT(name, members) \
-    union                            \
+    typedef union name               \
     {                                \
         members                      \
     } name
