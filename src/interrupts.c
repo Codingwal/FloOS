@@ -3,6 +3,7 @@
 #include "mem.h"
 #include "io.h"
 #include "error.h"
+#include "cpu.h"
 
 // ARMC interrupt registers
 // bcm2711-peripherals.pdf, page 101
@@ -39,6 +40,12 @@ static void interrupts_enable(uint id)
     // Set target core to cpu0
     GICD_REGS->interruptTargetProcessor[id] = 1;
 }
+static void interrupts_clearPending(uint id)
+{
+    uint n = id / 8;
+    uint offset = id % 8;
+    GICD_REGS->interruptClearPending[n] |= 1 << offset;
+}
 
 void interrupts_enableARMCInterrupt(uint armcId)
 {
@@ -47,32 +54,45 @@ void interrupts_enableARMCInterrupt(uint armcId)
     ARMC_REGS->irq0_set_en_2 |= 1 << armcId;
 }
 
-Func interruptHandlers[16] = {NULL};
+Func interruptHandlers[128] = {NULL};
 void interrupts_addARMCInterruptHandler(uint armcId, Func handler)
 {
-    assert(interruptHandlers[armcId] == NULL, "Handler already present");
-    interruptHandlers[armcId] = handler;
+    assert(interruptHandlers[armcId + 64] == NULL, "handler already present");
+    interruptHandlers[armcId + 64] = handler;
 }
+
+// The entire value of interruptAcknowledge is preserved for compatability,
+// but [9:0] are the ones containing the relevant id
 void interrupts_handleIRQ(void)
 {
-    print("Interrupt request\n");
-    uint32 pendingIRQs = ARMC_REGS->irq0_pending2;
-    for (uint i = 0; i < 16; i++)
-    {
-        if (pendingIRQs & 1)
-        {
-            printf("Handling IRQ %d\n", i);
-            assert(interruptHandlers[i] != NULL, "Missing interrupt handler");
-            interruptHandlers[i]();
-        }
-        pendingIRQs >>= 1;
-    }
+    uint32 interruptId = GICC_REGS->interruptAcknowledge;
+    printf("Interrupt request (id = %d)\n", interruptId);
+
+    // Handle IRQ
+    uint32 id = interruptId & BITMASK(10);
+    assert(interruptHandlers[id] != NULL, "missing interrupt handler");
+    interruptHandlers[id]();
+
+    // Notify GIC400 that the IRQ has been handled
+    interrupts_clearPending(interruptId);
+    GICC_REGS->endOfInterrupt = interruptId;
+    GICC_REGS->deactivateInterrupt = interruptId;
+
+    ARMC_REGS->irq0_pending2 = 0;
+
+    print("Reset pending interrupts line\n");
+
+    assert(cpu_exceptionLevel() == 1, "wrong exception level");
+
+    cpu_sysregs_daif_write(0);
+    // cpu_exceptionReturn();
 }
 
 void interrupts_init(void)
 {
-    GICD_REGS->control = 1; // Enable interrupt forwarding
-    GICC_REGS->control = 1; // Enable signaling of interrupts
+    GICC_REGS->priorityMask = 0xFFFF; // Enable interrupts of all priorities (Only priority values lower than this one are forwarded)
+    GICD_REGS->control = 1;           // Enable distributor (interrupt forwarding)
+    GICC_REGS->control = 1;           // Enable cpu interface (signaling of interrupts)
 }
 
 void interrupts_check(void)

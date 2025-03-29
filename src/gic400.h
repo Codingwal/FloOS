@@ -14,8 +14,10 @@ OFFSET_STRUCT(GICDistributorRegs,
               OFFSET_MEMBER(0x004, volatile uint32 controllerType);
               OFFSET_MEMBER(0x008, volatile uint32 implementerId);
               // ...
-              OFFSET_MEMBER(0x100, volatile byte interruptEnable[64]);  // (1b per interrupt)
-              OFFSET_MEMBER(0x180, volatile byte interruptDisable[64]); // (1b per interrupt)
+              OFFSET_MEMBER(0x100, volatile byte interruptEnable[64]);       // (1b per interrupt)
+              OFFSET_MEMBER(0x180, volatile byte interruptDisable[64]);      // (1b per interrupt)
+              OFFSET_MEMBER(0x200, volatile byte interruptSetPending[64]);   // (1b per interrupt)
+              OFFSET_MEMBER(0x280, volatile byte interruptClearPending[64]); // (1b per interrupt)
               // ...
               OFFSET_MEMBER(0x800, volatile byte interruptTargetProcessor[512]); // (1B per interrupt)
               OFFSET_MEMBER(0xC00, volatile byte interruptConfig[128]););        // (2b per interrupt)
@@ -31,5 +33,5 @@ OFFSET_STRUCT(GICCPUInterfaces,
               OFFSET_MEMBER(0x014, volatile uint32 runningPriority);
               OFFSET_MEMBER(0x018, volatile uint32 highestPriorityPending);
               // ...
-);
+              OFFSET_MEMBER(0x1000, volatile uint32 deactivateInterrupt););
 #define GICC_REGS ((volatile GICCPUInterfaces *)(GIC_BASE + 0x2000))

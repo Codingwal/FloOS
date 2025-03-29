@@ -20,20 +20,17 @@ struct TimerRegs
 #define TIMER_BASE (PERIPHERAL_BASE + 0xb400)
 #define TIMER ((volatile struct TimerRegs *)TIMER_BASE)
 
-// static void timer_clearIrq(void)
-// {
-//     TIMER->irqClear = 1;
-// }
-// static bool timer_irqPending(void)
-// {
-//     return TIMER->rawIrq & 0b1;
-// }
+static void timer_clearIrq(void)
+{
+    TIMER->irqClear = 1;
+}
 
 void timer_setTimer(uint value)
 {
     TIMER->load = value;
-    TIMER->irqClear = 1;
+    timer_clearIrq();
 }
+
 uint timer_getTimer(void)
 {
     return TIMER->value;
@@ -42,6 +39,7 @@ uint timer_getTimer(void)
 static void timer_handleIRQ(void)
 {
     print("Handling timer IRQ.\n");
+    timer_clearIrq();
 }
 
 void timer_init(void)

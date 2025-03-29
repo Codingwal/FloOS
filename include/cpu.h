@@ -112,7 +112,7 @@ static inline uint64 cpu_sysregs_CurrentEL_read(void)
 
 /* Utility functions */
 
-static inline uint cpu_getExceptionLevel(void)
+static inline uint cpu_exceptionLevel(void)
 {
     return cpu_sysregs_CurrentEL_read() >> 2;
 }
