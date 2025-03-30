@@ -11,8 +11,6 @@
 #include "kalloc.h"
 #include "drivers/timer.h"
 
-#include "gic400.h"
-
 int main(void)
 {
     uart_init();
@@ -45,14 +43,11 @@ int main(void)
 
     while (true)
     {
-        printf("Timer value: %d\n", timer_getTimer());
-
-        assert(cpu_exceptionLevel() == 1, "wrong exception level");
-
+        print("Waiting...\n");
         // Waste time
         for (uint i = 0; i < 1000 * 1000; i++)
         {
-            (void)timer_getTimer();
+            print("");
         }
     }
 

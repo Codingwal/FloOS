@@ -31,11 +31,6 @@ void timer_setTimer(uint value)
     timer_clearIrq();
 }
 
-uint timer_getTimer(void)
-{
-    return TIMER->value;
-}
-
 static void timer_handleIRQ(void)
 {
     print("Handling timer IRQ.\n");
