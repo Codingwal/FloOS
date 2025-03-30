@@ -27,6 +27,7 @@ static void timer_clearIrq(void)
 
 void timer_setTimer(uint value)
 {
+    value *= 4000;
     TIMER->load = value;
     timer_clearIrq();
 }
@@ -42,7 +43,7 @@ void timer_init(void)
     uint32 control = 0;
     // [0] reserved
     control |= 1 << 1; // [1] 32BIT -> 32bit counter
-    control |= 0 << 2; // [3:2] DIV -> no pre-scale
+    control |= 2 << 2; // [3:2] DIV -> pre-scale is clock / 256
     // [4] reserved
     control |= 1 << 5; // [5] IE -> timer interrupt enabled
     // [6] reserved
