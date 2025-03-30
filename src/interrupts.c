@@ -30,7 +30,7 @@ OFFSET_STRUCT(ARMCRegs,
 #define ARMC_BASE (PERIPHERAL_BASE + 0xb000)
 #define ARMC_REGS ((volatile ARMCRegs *)ARMC_BASE)
 
-static void interrupts_enable(uint id)
+static void interrupts_enableInterrupt(uint id)
 {
     // Enable interrupt
     uint n = id / 8;
@@ -50,7 +50,7 @@ static void interrupts_clearPending(uint id)
 void interrupts_enableARMCInterrupt(uint armcId)
 {
     uint id = armcId + 64;
-    interrupts_enable(id);
+    interrupts_enableInterrupt(id);
     ARMC_REGS->irq0_set_en_2 |= 1 << armcId;
 }
 
@@ -80,12 +80,16 @@ void interrupts_handleIRQ(void)
 
     ARMC_REGS->irq0_pending2 = 0;
 
-    print("Reset pending interrupts line\n");
+    interrupts_enable(); // Interrupts got disabled by the processor
+}
 
-    assert(cpu_exceptionLevel() == 1, "wrong exception level");
-
+void interrupts_enable(void)
+{
     cpu_sysregs_daif_write(0);
-    // cpu_exceptionReturn();
+}
+void interrupts_disable(void)
+{
+    cpu_sysregs_daif_write(BITMASK(4) << 6); // Set [9:6] to 1
 }
 
 void interrupts_init(void)
@@ -93,9 +97,5 @@ void interrupts_init(void)
     GICC_REGS->priorityMask = 0xFFFF; // Enable interrupts of all priorities (Only priority values lower than this one are forwarded)
     GICD_REGS->control = 1;           // Enable distributor (interrupt forwarding)
     GICC_REGS->control = 1;           // Enable cpu interface (signaling of interrupts)
-}
-
-void interrupts_check(void)
-{
-    printf("%ub, ", ARMC_REGS->irq0_pending2);
+    interrupts_enable();
 }

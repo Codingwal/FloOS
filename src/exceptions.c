@@ -42,12 +42,4 @@ void exceptions_init(void)
     // Set vector table address
     uint64 exceptionVectorAddr = (uint64)&exceptionVector;
     cpu_sysregs_vbar_el1_write(exceptionVectorAddr);
-
-    // Remove exception masking
-    uint64 daif = 0;
-    daif |= 0 << 6; // [6] F (FIQ mask) -> Enable FIQ interrupts
-    daif |= 0 << 7; // [7] I (IRQ mask) -> Enable IRQ interrupts
-    daif |= 0 << 8; // [8] A (SError mask) -> Enable SError interrupts
-    daif |= 0 << 9; // [9] D (D mask) -> Enable watchpoint, breakpoint & software step exceptions
-    cpu_sysregs_daif_write(daif);
 }
