@@ -103,6 +103,12 @@ static inline uint64 cpu_sysregs_esr_el1_read(void)
     asm volatile("mrs %0, esr_el1\n" : "=r"(value) :);
     return value;
 }
+static inline uint64 cpu_sysregs_elr_el1_read(void)
+{
+    uint64 value;
+    asm volatile("mrs %0, elr_el1\n" : "=r"(value) :);
+    return value;
+}
 static inline uint64 cpu_sysregs_CurrentEL_read(void)
 {
     uint64 value;

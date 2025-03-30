@@ -16,6 +16,10 @@
 #define V_RAM_SIZE 0x800000                  // 0x80_0000 (8MiB)
 #define V_RAM_END (V_RAM_START + V_RAM_SIZE) // In bytes
 
+#define GIC_BASE 0xFF840000           // 0xFF84_0000 (bcm2711-peripherals.pdf, page 93)
+#define GIC_END 0xFF850000            // 0xFF85_0000
+#define GIC_SIZE (GIC_END - GIC_BASE) // In bytes
+
 #define PAGE_MASK (PAGE_SIZE - 1)
 #define PAGE_ROUND_DOWN(addr) ROUND_DOWN(addr, PAGE_SIZE)
 #define PAGE_ROUND_UP(addr) ROUND_UP(addr, PAGE_SIZE)

@@ -12,7 +12,8 @@ static void exceptions_unifiedHandler(void)
     uint ec = (esr >> 26) & BITMASK(6); // [31:26] Exception class
     uint iss = esr & BITMASK(24);       // [24:0] Instruction specific syndrome
     printf("Exception class = %b; Instruction specific syndrome = %b\n", ec, iss);
-    cpu_exceptionReturn();
+    printf("Faulting instruction address: %p", cpu_sysregs_elr_el1_read());
+    halt();
 }
 
 void exceptions_undefined(void)

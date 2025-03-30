@@ -7,9 +7,6 @@
 // CoreLink GIC-400 Generic Interrupt Controller Technical Reference Manual (programmers model)
 // ARM Generic Interrupt Controller Architecture Specification
 
-// bcm2711-peripherals.pdf, page 93
-#define GIC_BASE 0xFF840000
-
 // GIC-400 Distributor registers
 OFFSET_STRUCT(GICDistributorRegs,
               OFFSET_MEMBER_0(volatile uint32 control);

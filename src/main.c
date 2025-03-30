@@ -27,11 +27,11 @@ int main(void)
     pageAlloc_init();
     print("Initialized page allocator\n");
 
-    // vm_init();
-    // print("Enabled the mmu and virtual memory\n");
+    vm_init();
+    print("Enabled the mmu and virtual memory\n");
 
-    // kalloc_init();
-    // print("Initialized kernel allocator\n");
+    kalloc_init();
+    print("Initialized kernel allocator\n");
 
     timer_init();
     print("Initialized timer\n");
