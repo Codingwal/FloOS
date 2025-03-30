@@ -62,7 +62,7 @@ static void uintToString(char *dest, uint64 value, int base)
         if (remainder < 10)
             dest[i++] = remainder + '0';
         else
-            dest[i++] = remainder - 10 + 'a';
+            dest[i++] = remainder - 10 + 'A';
         value /= base;
     }
     string_reverse(dest, i);
@@ -92,7 +92,7 @@ static void intToString(char *dest, int64 value, int base)
         if (remainder < 10)
             dest[i++] = remainder + '0';
         else
-            dest[i++] = remainder - 10 + 'a';
+            dest[i++] = remainder - 10 + 'A';
         value /= base;
     }
     if (isNegative)
@@ -111,13 +111,13 @@ static void printPtr(void *ptr)
         if (top < 10)
             printChar(top + '0');
         else
-            printChar(top - 10 + 'a');
+            printChar(top - 10 + 'A');
 
         byte bottom = arr[i] & 0xF;
         if (bottom < 10)
             printChar(bottom + '0');
         else
-            printChar(bottom - 10 + 'a');
+            printChar(bottom - 10 + 'A');
     }
 }
 
