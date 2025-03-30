@@ -109,6 +109,12 @@ static inline uint64 cpu_sysregs_elr_el1_read(void)
     asm volatile("mrs %0, elr_el1\n" : "=r"(value) :);
     return value;
 }
+static inline uint64 cpu_sysregs_far_el1_read(void)
+{
+    uint64 value;
+    asm volatile("mrs %0, far_el1\n" : "=r"(value) :);
+    return value;
+}
 static inline uint64 cpu_sysregs_CurrentEL_read(void)
 {
     uint64 value;
@@ -118,6 +124,13 @@ static inline uint64 cpu_sysregs_CurrentEL_read(void)
 
 /* Utility functions */
 
+static inline uint cpu_stackPointer(void)
+{
+    uint64 value;
+    asm volatile("mov %0, sp\n" : "=r"(value) :);
+    return value;
+}
+
 static inline uint cpu_exceptionLevel(void)
 {
     return cpu_sysregs_CurrentEL_read() >> 2;
@@ -126,7 +139,7 @@ static inline uint cpu_exceptionLevel(void)
 static inline void cpu_invalidateTLB(void)
 {
     // https://f.osdev.org/viewtopic.php?t=36412
-    asm volatile("tlbi VMALLE1\n");
+    asm volatile("tlbi vmalle1\n");
     cpu_dataSyncBarrier();
     cpu_instrSyncBarrier();
 }

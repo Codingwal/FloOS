@@ -38,7 +38,7 @@ int main(void)
 
     print("\nFinished initializing flOSse.\n\n");
 
-    timer_setTimer(15 * 1000);
+    timer_setTimer(2 * 1000);
     print("Set timer\n");
 
     while (true)
