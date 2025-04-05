@@ -16,7 +16,7 @@ char readChar(void)
 void print(const char *str)
 {
     assert(str != 0, "str is NULL");
-    while (*str)
+    while (*str != '\0')
     {
         printChar(*str++);
     }
