@@ -2,6 +2,7 @@
 #include "mem.h"
 #include "error.h"
 #include "cpu.h"
+#include "io.h"
 
 // GIC-400 Information:
 // CoreLink GIC-400 Generic Interrupt Controller Technical Reference Manual (programmers model)
@@ -102,8 +103,6 @@ void interrupts_handleIRQ(void)
     GICC_REGS->deactivateInterrupt = interruptId;
 
     ARMC_REGS->irq0_pending2 = 0;
-
-    interrupts_enable(); // Interrupts got disabled by the processor
 }
 
 void interrupts_enable(void)
