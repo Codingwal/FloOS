@@ -1,0 +1,62 @@
+https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf
+
+- TransferDescriptor (TD) [p63]
+    - used to request transfers
+    - made up of 1+ TRBs, where the chain flag is set for all but the last one
+
+- TransferRequestBlock (TRB) [p65]
+    - 8B: data buffer pointer / Immediate data
+    - 4B: status (size) (64K as max value)
+    - 4B: control information [p465]
+        - TRB type
+        - optional: 
+            chain (CH), interrupt on completion (IOC), immmediate data (IDT), no-snoop (NS), interrupt on short packet (ISP), start isochronous ASAP (SIA), frame id
+    => 16B in total => 256 per page
+
+- TransferRing [p63]
+    - queue of TDs
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+TD, TRB, TransferRing schematic:
+
+TRB (CH) | TRB (CH) | TRB (--) | TRB(--) | TRB(CH) | TRB(--)
+|------------ TD ------------|   |------ TD -----|   |- TD -|
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+- Scatter/Gather Transfers [p66]:
+    - Rules for the TRB's pointer (do they really apply??)
+        - first TRB's pointer must not start on a page boundary
+        - last TRB's size can be less than a page
+        - all in between start on a page boundary and are one page in size
+    - chain flag set in all but the last TRBs
+
+- Control transfers [p68]
+    - transaction stages: 
+    -> 3 TD types:
+        - Setup stage TD
+            - single TRB containing setup data
+                - [usb_20.pdf, p276]
+        - Data TRB
+        - Status stage TD
+            - single TRB
+            - may include an event data TRB
+            - [usb_20.pdf, p254]
+    - place 2/3 TDs on the transfer ring, then ring the doorbell
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+Example transfer ring setup for a control transfer:
+
+--------------------
+Data buffer pointer:    Setup data
+Status / Length:        8
+Control info:           Setup stage, Immediate
+--------------------
+Data buffer pointer:    Setup data
+Status / Length:        8
+Control info:           Data stage, IN
+--------------------
+Data buffer pointer:    Not used
+Status / Length:        8
+Control info:           Status stage , OUT
+--------------------
+////////////////////////////////////////////////////////////////////////////////////////////////////////
