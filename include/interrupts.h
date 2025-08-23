@@ -2,7 +2,9 @@
 
 #include "defs.h"
 
+// Initializes interrupts but does not enable them
 void interrupts_init(void);
+
 void interrupts_enable(void);
 void interrupts_disable(void);
 

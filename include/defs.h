@@ -1,5 +1,7 @@
 #pragma once
 
+#define REQUIRE_SIZE(type, size) _Static_assert(sizeof(type) == (size), "size error")
+
 typedef unsigned int uint;
 typedef unsigned char byte;
 typedef long long int int64;
@@ -7,23 +9,18 @@ typedef long long unsigned int uint64;
 typedef int int32;
 typedef unsigned int uint32;
 
+REQUIRE_SIZE(byte, 1);
+REQUIRE_SIZE(int64, 8);
+REQUIRE_SIZE(uint64, 8);
+REQUIRE_SIZE(int32, 4);
+REQUIRE_SIZE(uint32, 4);
+
 typedef void (*Func)(void);
 
-_Static_assert(sizeof(byte) == 1, "size error");
-_Static_assert(sizeof(int64) == 8, "size error");
-_Static_assert(sizeof(uint64) == 8, "size error");
-_Static_assert(sizeof(int32) == 4, "size error");
-_Static_assert(sizeof(uint32) == 4, "size error");
-
-#ifndef bool
 #define bool _Bool
 #define true 1
 #define false 0
-#endif
-
-#ifndef NULL
 #define NULL 0
-#endif
 
 #define offsetof(TYPE, MEMBER) __builtin_offsetof(TYPE, MEMBER)
 

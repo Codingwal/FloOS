@@ -119,5 +119,4 @@ void interrupts_init(void)
     GICC_REGS->priorityMask = 0xFFFF; // Enable interrupts of all priorities (Only priority values lower than this one are forwarded)
     GICD_REGS->control = 1;           // Enable distributor (interrupt forwarding)
     GICC_REGS->control = 1;           // Enable cpu interface (signaling of interrupts)
-    interrupts_enable();
 }

@@ -33,6 +33,9 @@ int main(void)
     kalloc_init();
     print("Initialized kernel allocator\n");
 
+    interrupts_enable();
+    print("Enabled interrupts\n");
+
     timer_init();
     print("Initialized timer\n");
 
@@ -44,7 +47,7 @@ int main(void)
     while (true)
     {
         print("Waiting...\n");
-        
+
         // Waste time
         for (uint i = 0; i < 1000 * 1000; i++)
         {
