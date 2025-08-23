@@ -10,7 +10,8 @@ https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifica
     - 4B: control information [p465]
         - TRB type
         - optional: 
-            chain (CH), interrupt on completion (IOC), immmediate data (IDT), no-snoop (NS), interrupt on short packet (ISP), start isochronous ASAP (SIA), frame id
+            chain (CH), interrupt on completion (IOC), immmediate data (IDT), no-snoop (NS), 
+            interrupt on short packet (ISP), start isochronous ASAP (SIA), frame id
     => 16B in total => 256 per page
 
 - TransferRing [p63]
@@ -60,3 +61,32 @@ Status / Length:        8
 Control info:           Status stage , OUT
 --------------------
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+- CommandDescriptor (CD) [p72]
+    - Command types: [p72] (The list here is incomplete)
+        - Address device [p74]
+            - SET_ADDRESS request -> device gets id and transitions to "Address"
+            - issued immediately after EnableSlot Command
+            - informs xHC that the ptr in DeviceContextBaseAddressArray references a DeviceContext data structure
+            - TRB points to an InputContext data structure
+            - part of the USB device enumeration
+        - Configure endpoint [p75]
+            - TRB points to an InputContext data structure which defines target config params for xHC
+            - inform xHC of pipe changes
+            - must construct data structures beforehand
+                - based on the InputContext
+                - fully describe target config
+                - InputControlContext identifies which endpoints are affected
+                - EndpointContexts of endpoints that are enabled/modified need to be fully specified
+                - EndpointContext points to a TransferRing (unless streams are enabled for the endpoint)
+                - If successful...
+                    - enabled/modified data structures are copied to the respective OutputEndpointContext data structure
+                    - TransferRings referenced by the InputEndpointContexts will be used by the xHC to manage the respective pipes
+                    -> InputContext data structure can be freed, TransferRings must remain allocated (for xHC)
+            - must be successful, should not issue a SET_CONFIGURATION request otherwise
+
+- Command ring [p72]
+    - only one
+    - defined in OperationalRegisterSpace
+    - queue of CDs (made out of TRBs)
+    - each command results in a TRB on the event ring
