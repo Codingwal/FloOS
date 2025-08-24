@@ -107,11 +107,17 @@ void interrupts_handleIRQ(void)
 
 void interrupts_enable(void)
 {
-    cpu_sysregs_daif_write(0);
+    daif reg = {0}; // enable all interrupts
+    cpu_sysregs_daif_write(reg);
 }
 void interrupts_disable(void)
 {
-    cpu_sysregs_daif_write(BITMASK(4) << 6); // Set [9:6] to 1
+    daif reg;
+    reg.d = 1; // disable breakpoints etc
+    reg.a = 1; // disable SError
+    reg.i = 1; // disable IRQ
+    reg.f = 1; // disable FIQ
+    cpu_sysregs_daif_write(reg);
 }
 
 void interrupts_init(void)

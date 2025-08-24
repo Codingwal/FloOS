@@ -7,7 +7,7 @@
 #include "cpu.h"
 
 // See https://developer.arm.com/documentation/ddi0487/fc/
-// page 2571: virtual adress structure
+// page 2571: virtual address structure
 // page 2589: table descriptor structure
 // page 2591: page descriptor structure
 // page 2595: page descriptor attribute fields
@@ -21,27 +21,81 @@ enum
     PAGE_DESCRIPTOR = 2,  // 0b10
 };
 
+typedef union PagetableEntry
+{
+    struct
+    {
+        uint64 valid : 1;
+        uint64 entryType : 1;
+    };
+    struct TableDescriptor
+    {
+        uint64 valid : 1;     // should be 1
+        uint64 entryType : 1; // should be 1
+        uint64 ta : 14;
+        uint64 : 32; // address bits [47:16]
+        uint64 : 16;
+    } tableDescriptor;
+    struct PageDescriptor
+    {
+        uint64 valid : 1;     // should be 1
+        uint64 entryType : 1; // should be 1
+        uint64 attrIndx : 3;  // index into mair_elX
+        uint64 ns : 1;        // non secure bit
+        uint64 ap : 2;        // ap[2:1] access permissions
+        uint64 sh : 2;        // shareability field
+        uint64 af : 1;        // access flag
+        uint64 ng : 1;        // not global
+        uint64 : 4;
+        uint64 : 32; // address bits [47:16]
+        uint64 : 4;
+        uint64 contiguous : 1; // contiguous bit
+        uint64 pxn : 1;        // privileged execute-never
+        uint64 xn : 1;         // (unpriviledged-) execute-never
+        uint64 softwareFlags : 4;
+        uint64 : 5;
+    } pageDescriptor;
+    struct BlockDescriptor
+    {
+        uint64 valid : 1;     // should be 1
+        uint64 entryType : 1; // should be 0
+        uint64 lowerAttr : 10;
+        uint64 oa : 4;
+        uint64 nT : 1;
+        uint64 : 31; // address bits [47:n] // L1: n=42, L2: n=29
+        uint64 : 2;
+        uint64 upperAttr : 14;
+    } blockDescriptor;
+    uint64 address; // set address using entry.address |= ptr
+    uint64 raw;
+} PagetableEntry;
+REQUIRE_SIZE(PagetableEntry, 8);
+int x = sizeof(struct PageDescriptor);
+struct Pagetable
+{
+    PagetableEntry entries[512];
+};
+
 Pagetable *kernelPagetable;
 
 #define PTE2PA(x) ((void *)(x & (BITMASK(48) - BITMASK(12))))
 #define PA2PTE(x) ((uint64)x)
 
-static uint64 vm_getFlags(enum MairIdxs mairIdx, bool pxn, enum AccessPerms ap)
+static PagetableEntry vm_getFlags(enum MairIdxs mairIdx, bool pxn, enum AccessPerms ap)
 {
-    uint64 flags = 0;
-    flags |= (uint64)(pxn & 1) << 53;                // [53] Privileged execute never
-    flags |= 1 << 10;                                // [10] Access flag
-    flags |= (mairIdx == IDX_NORMAL) ? (3 << 8) : 0; // [9:8] Shareability field (Only normal, chacheable memory)
-    flags |= (ap & 3) << 6;                          // [7:6] Access permissions
-    flags |= 1 << 5;                                 // [5] Non secure access control (1 = access for secure and non-secure)
-    flags |= (mairIdx & 7) << 2;                     // [4:2] Attribute index
-    flags |= PAGE_DESCRIPTOR;                        // [1] Descriptor type
-    flags |= VALID;                                  // [0] Valid
-    return flags;
+    PagetableEntry entry = {0};
+    entry.valid = true;
+    entry.entryType = 1;
+    entry.pageDescriptor.attrIndx = mairIdx;
+    entry.pageDescriptor.ap = ap;
+    entry.pageDescriptor.pxn = pxn;
+    entry.pageDescriptor.af = 1;                               // cpu generates a fault if this is set to 0
+    entry.pageDescriptor.sh = (mairIdx == IDX_NORMAL) ? 3 : 0; // inner shareable if normal memory
+    return entry;
 }
 
 // Get the page table entry at level 3, which points to a 4KB memory region
-static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr)
+static PagetableEntry *vm_getPTE(Pagetable *table, void *virtualAddr)
 {
     assert(table != NULL, "table is NULL");
 
@@ -52,7 +106,7 @@ static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr)
         va >>= 9;                  // loops once -> L1 index will be the actual L0 index and so on
         va &= ~BITMASK(3);         // Remove the 3 least significant bits. [11:3] are the L3 index
         va |= ((uint64)511 << 39); // L0 index needs to be the last entry, which is the loop entry
-        return (uint64 *)va;
+        return (PagetableEntry *)va;
     }
 
     uint lsb = 39;
@@ -64,9 +118,9 @@ static uint64 *vm_getPTE(Pagetable *table, void *virtualAddr)
         if (level == 3)
             return &table->entries[index];
 
-        uint64 entry = table->entries[index];
-        assert(entry & VALID, "invalid entry");
-        table = (Pagetable *)PTE2PA(entry); // Extract [47..12], which is the next level page table adress ([11..00] is always zero)
+        PagetableEntry entry = table->entries[index];
+        assert(entry.valid, "invalid entry");
+        table = (Pagetable *)PTE2PA(entry.raw); // Extract [47..12], which is the next level page table adress ([11..00] is always zero)
 
         lsb -= 9;
     }
@@ -76,9 +130,9 @@ void *vm_va2pa(Pagetable *table, void *virtualAddr)
 {
     assert(table != NULL, "table is NULL");
 
-    uint64 *entryPtr = vm_getPTE(table, virtualAddr);
-    if (*entryPtr & VALID)
-        return PTE2PA(*entryPtr);
+    PagetableEntry *entryPtr = vm_getPTE(table, virtualAddr);
+    if (entryPtr->valid)
+        return PTE2PA(entryPtr->address);
     else
         return NULL;
 }
@@ -93,14 +147,15 @@ void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, 
     byte *va = virtualAddr;
     byte *pa = physicalAddr;
 
-    uint64 flags = vm_getFlags(mairIdx, pxn, ap);
+    PagetableEntry flags = vm_getFlags(mairIdx, pxn, ap);
 
     byte *lastPage = va + size;
     while (va < lastPage)
     {
-        uint64 *entry = vm_getPTE(table, va);
-        assert(!(*entry & VALID) || replace, "entry exists but replacing is disallowed");
-        *entry = (uint64)pa | flags;
+        PagetableEntry *entry = vm_getPTE(table, va);
+        assert(!entry->valid || replace, "entry exists but replacing is disallowed");
+        *entry = flags;
+        entry->address |= (uint64)pa;
 
         va += PAGE_SIZE;
         pa += PAGE_SIZE;
@@ -120,8 +175,8 @@ void vm_unmap(Pagetable *table, void *virtualAddr, uint size)
     uint c = size / PAGE_SIZE;
     for (uint i = 0; i < c; i++)
     {
-        uint64 *entry = vm_getPTE(table, va);
-        *entry = 0;
+        PagetableEntry *entry = vm_getPTE(table, va);
+        entry->raw = 0;
         va += PAGE_SIZE;
     }
 
@@ -137,10 +192,10 @@ void *vm_getVaRange(Pagetable *table, uint size)
     uint count = 0;
     for (byte *va = (byte *)V_RAM_START; (uint64)va < V_RAM_END; va += PAGE_SIZE)
     {
-        uint64 *entryPtr = vm_getPTE(table, va);
+        PagetableEntry *entryPtr = vm_getPTE(table, va);
 
         // If there already is a physical address mapped to this virtual address, reset the free PTEs counter and continue
-        if (*entryPtr & VALID)
+        if (entryPtr->valid)
         {
             count = 0;
             continue;
@@ -159,7 +214,7 @@ void *vm_getVaRange(Pagetable *table, uint size)
 }
 
 // Get the page table entry at level 3, which points to a 4KB memory region
-static uint64 *vm_getPTEAllocating(Pagetable *table, void *virtualAddr)
+static PagetableEntry *vm_getPTEAllocating(Pagetable *table, void *virtualAddr)
 {
     assert(table != NULL, "table is NULL");
 
@@ -168,20 +223,21 @@ static uint64 *vm_getPTEAllocating(Pagetable *table, void *virtualAddr)
     {
         uint index = ((uint64)virtualAddr >> lsb) & BITMASK(9); // Extract [47..39], [38..30], [29..21] or [20..12], depending on level, and shift it down
 
-        uint64 *entry = &table->entries[index];
+        PagetableEntry *entry = &table->entries[index];
 
         // If the entry points to a memory region and not another page table (true for all entries in a level 3 page table), return a pointer to it
         if (level == 3)
             return entry;
 
-        if (!(*entry & VALID))
+        if (!entry->valid)
         {
             void *ptr = pageAlloc_alloc();
             mem_set(ptr, 0, PAGE_SIZE);
-            *entry = PA2PTE(ptr) | vm_getFlags(IDX_NORMAL_NO_CACHE, true, PRIV_RW);
+            *entry = vm_getFlags(IDX_NORMAL_NO_CACHE, true, PRIV_RW);
+            entry->address |= (uint64)ptr;
         }
 
-        table = (Pagetable *)PTE2PA(*entry); // Extract [47..12], which is the next level page table adress
+        table = (Pagetable *)PTE2PA(entry->address); // Extract [47..12], which is the next level page table adress
 
         lsb -= 9;
     }
@@ -197,14 +253,15 @@ static void vm_mapAllocating(Pagetable *table, void *virtualAddr, void *physical
     byte *va = virtualAddr;
     byte *pa = physicalAddr;
 
-    uint64 flags = vm_getFlags(mairIdx, pxn, ap);
+    PagetableEntry flags = vm_getFlags(mairIdx, pxn, ap);
 
     byte *lastPage = va + size;
     while (va < lastPage)
     {
-        uint64 *entry = vm_getPTEAllocating(table, va);
-        assert(!(*entry & VALID), "entry already exists");
-        *entry = (uint64)pa | flags;
+        PagetableEntry *entry = vm_getPTEAllocating(table, va);
+        assert(!entry->valid, "entry already exists");
+        *entry = flags;
+        entry->address = (uint64)pa;
 
         va += PAGE_SIZE;
         pa += PAGE_SIZE;
@@ -215,60 +272,58 @@ static void vm_setConfig(const Pagetable *kernelPagetable)
 {
     assert(((uint64)kernelPagetable & ~BITMASK(7)) == (uint64)kernelPagetable, "kernel pagetable is not sufficiently aligned");
 
-    // Set the address of the L0 pagetable
-    uint64 ttbr = (uint64)kernelPagetable;
-    ttbr |= 0; // Not shareable, not cacheable
-    cpu_sysregs_ttbr0_el1_write(ttbr);
-    cpu_sysregs_ttbr1_el1_write(ttbr); // ttbr1 is unused but why not
+    // Set translation table base address
+    ttbr0_el1 ttbr0 = {0};
+    ttbr0.baddr = (uint64)kernelPagetable;
+    cpu_sysregs_ttbr0_el1_write(ttbr0);
 
-    // Set information about the virtual address structure (was 0x5b5103510 before)
-    uint64 tcr = 0;
-    tcr |= (uint64)0 << 38; // [38] TBI1 (1 = Top byte ignored in address calculation with ttbr1)
-    tcr |= (uint64)0 << 37; // [38] TBI0 (1 = Top byte ignored in address calculation with ttbr0)
-    tcr |= (uint64)0 << 36; // [36] AS the upper 8 bits of ttbrX are ignored by hardware
-    tcr |= (uint64)5 << 32; // [34:32] IPS Intermediate physical address size (0b101 = 48 bits)
-
-    tcr |= (uint64)2 << 30;  // [31:30] TG1 Granule size for ttbr1 (0b10 = 4KB)
-    tcr |= (uint64)3 << 28;  // [29:28] SH1 Shareabilty attribute for mem associated with ttbr1 (0b00 = innter shareable)
-    tcr |= (uint64)1 << 26;  // [27:26] ORGN1 Outer cacheability attribute for mem associated with ttbr1 (0b01 = Write-Back Read-Allocate Write-Allocate Cacheable)
-    tcr |= (uint64)1 << 24;  // [25:24] IRGN1 Innter cacheability attribute for mem associated with ttbr1 (0b01 = Write-Back Read-Allocate Write-Allocate Cacheable)
-    tcr |= (uint64)1 << 23;  // [23] EPD1 Translation table walk disable for ttbr1 (1 = disable ttbr1 translation table walks)
-    tcr |= (uint64)0 << 22;  // [22] A1 ttbr0 defines the ASID (ttbr1.ASID is ignored)
-    tcr |= (uint64)16 << 16; // [21:16]T1SZ Size offset of the mem region addressed by ttbr1. region size = 2^(64-val) bytes. (= 48 bits)
-
-    tcr |= (uint64)0 << 14; // [15:14] TG0 Granule size for ttbr0 (0b00 = 4KB)
-    tcr |= (uint64)3 << 12; // [13:12] SH0 Shareabilty attribute for mem associated with ttbr0 (0b00 = inner shareable)
-    tcr |= (uint64)1 << 10; // [11:10] ORGN0 Outer cacheability attribute for mem associated with ttbr0 (0b01 = Write-Back Read-Allocate Write-Allocate Cacheable)
-    tcr |= (uint64)1 << 8;  // [9:8] IRGN0 Inner cacheability attribute for mem associated with ttbr0 (0b01 = Write-Back Read-Allocate Write-Allocate Cacheable)
-    tcr |= (uint64)0 << 7;  // [7] EPD0 Translation table walk disable for ttbr0 (0 = enable ttbr0 translation table walks)
-    tcr |= (uint64)16;      // [5:0] T0SZ Size offset of the mem region addressed by ttbr0. region size = 2^(64-val) bytes. (= 48 bits)
-
+    // Set information about the virtual address structure
+    tcr_el1 tcr = {0};
+    tcr.t0sz = 16; // size of the region addressed by ttbr0 =2^(64-16)=2^48 (=> 48bits)
+    tcr.epd0 = 0;  // enable ttbr0 translation table walks
+    tcr.irgn0 = 1; // ttbr0 inner cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
+    tcr.orgn0 = 1; // ttbr0 outer cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
+    tcr.sh0 = 3;   // ttbr0: inner shareable
+    tcr.tg0 = 0;   // 4kB granule size for ttbr0
+    tcr.t1sz = 16; // size of the region addressed by ttbr0 =2^(64-16)=2^48 (=> 48bits)
+    tcr.a1 = 0;    // ttbr0 defines the ASID (ttbr1.ASID is ignored)
+    tcr.epd1 = 0;  // enable ttbr1 translation table walks
+    tcr.irgn1 = 1; // ttbr1 inner cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
+    tcr.orgn1 = 1; // ttbr1 outer cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
+    tcr.sh1 = 3;   // ttbr1: inner shareable
+    tcr.tg1 = 2;   // 4kB granule size for ttbr1
+    tcr.ips = 5;   // intermediate physical address size = 48 bits
+    tcr.as = 0;    // the upper 8 bits of ttbrX are ignored by hardware
+    tcr.tbi0 = 1;  // ignore top byte for ttbr0 addresses
+    tcr.tbi1 = 1;  // ignore top byte for ttbr1 addresses
     cpu_sysregs_tcr_el1_write(tcr);
 
     // Set memory attributes
     // https://documentation-service.arm.com/static/63a43e333f28e5456434e18b (learn_the_architecture_-_aarch64_memory_attributes_and_properties)
-    byte normal = 0xFF;
-    byte normalNoCache = 68; // 0b01000100
-    byte device = 0;
-    cpu_sysregs_mair_el1_write((normal << (IDX_NORMAL * 8)) | (normalNoCache << (IDX_NORMAL_NO_CACHE * 8)) | (device << (IDX_DEVICE * 8)));
+    // IMPORTANT: this must match the MairIdxs enum
+    mair_el1 mair = {0};
+    mair.attr0 = 0xFF; // normal
+    mair.attr1 = 68;   // normal no cache (68 = 0b01000100)
+    mair.attr2 = 0;    // device
+    cpu_sysregs_mair_el1_write(mair);
 
     cpu_instrSyncBarrier();
 }
 
 void vm_enable(void)
 {
-    uint64 sysControlReg = cpu_sysregs_sctlr_el1_read();
-    sysControlReg |= 1;       // Enable virtual memory
-    sysControlReg |= 1 << 12; // Enable instruction caches at el1
-    cpu_sysregs_sctlr_el1_write(sysControlReg);
+    sctlr_el1 reg = cpu_sysregs_sctlr_el1_read();
+    reg.m = 1; // Enable virtual memory
+    reg.i = 1; // Enable instruction caches at el1
+    cpu_sysregs_sctlr_el1_write(reg);
 
     cpu_instrSyncBarrier();
 }
 
 bool vm_isEnabled(void)
 {
-    uint64 sysControlReg = cpu_sysregs_sctlr_el1_read();
-    return sysControlReg & 1; // Check the virtual memory enabled bit
+    sctlr_el1 sysControlReg = cpu_sysregs_sctlr_el1_read();
+    return sysControlReg.m == 1; // Check the virtual memory enabled bit
 }
 
 void vm_init(void)

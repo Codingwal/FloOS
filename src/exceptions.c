@@ -8,18 +8,18 @@ extern byte exceptionVector[];
 
 static void exceptions_printDebugInfo(void)
 {
-    uint64 esr = cpu_sysregs_esr_el1_read();
-    uint ec = (esr >> 26) & BITMASK(6); // [31:26] Exception class
-    uint iss = esr & BITMASK(25);       // [24:0] Instruction specific syndrome
+    esr_el1 esr = cpu_sysregs_esr_el1_read();
+    uint exceptionClass = esr.ec;
+    uint instrSpecificSyndrome = esr.iss;
 
-    printf("Faulting instruction address: %p\n\n", cpu_sysregs_elr_el1_read());
-    printf("Exception class = %b ", ec);
+    printf("Faulting instruction address: %p\n\n", cpu_sysregs_elr_el1_read().address);
+    printf("Exception class = %b ", exceptionClass);
 
-    switch (ec)
+    switch (exceptionClass)
     {
     case 37: // 0b100101
         print("(data abort without a change in exception level)\n");
-        uint dataFaultStatusCode = iss & BITMASK(6);
+        uint dataFaultStatusCode = instrSpecificSyndrome & BITMASK(6);
         switch (dataFaultStatusCode >> 2)
         {
         case 0:
@@ -46,8 +46,8 @@ static void exceptions_printDebugInfo(void)
         break;
     }
 
-    printf("\nInstruction specific syndrome = %b\n", iss);
-    printf("Fault address register: %p\n", cpu_sysregs_far_el1_read());
+    printf("\nInstruction specific syndrome = %b\n", instrSpecificSyndrome);
+    printf("Fault address register: %p\n", cpu_sysregs_far_el1_read().address);
 }
 static void exceptions_unifiedHandler(void)
 {
@@ -80,6 +80,6 @@ void exceptions_serror(void)
 void exceptions_init(void)
 {
     // Set vector table address
-    uint64 exceptionVectorAddr = (uint64)&exceptionVector;
+    vbar_el1 exceptionVectorAddr = {.vba = (uint64)&exceptionVector};
     cpu_sysregs_vbar_el1_write(exceptionVectorAddr);
 }

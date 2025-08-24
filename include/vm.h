@@ -2,11 +2,7 @@
 
 #include "defs.h"
 
-typedef struct Pagetable
-{
-    uint64 entries[512];
-} Pagetable;
-
+typedef struct Pagetable Pagetable;
 extern Pagetable *kernelPagetable;
 
 enum MairIdxs

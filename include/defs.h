@@ -22,6 +22,8 @@ typedef void (*Func)(void);
 #define false 0
 #define NULL 0
 
+#define PACKED __attribute__((packed))
+
 #define offsetof(TYPE, MEMBER) __builtin_offsetof(TYPE, MEMBER)
 
 typedef enum ExitCode
