@@ -1,8 +1,8 @@
 .section ".text.boot"
 
-.global _start
+.global _entry
 
-_start:
+_entry:
     // Check processor ID is zero (=main core), halt otherwise
     mrs x1, mpidr_el1 // Get info from system register
     and x1, x1, #3

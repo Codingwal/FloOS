@@ -80,8 +80,7 @@ typedef union ttbr1_el1
 {
     struct
     {
-        uint64 : 1;
-        uint64 baddr : 47;
+        uint64 baddr : 48;
         uint64 asid : 16;
     };
     uint64 raw;

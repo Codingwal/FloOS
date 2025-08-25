@@ -32,9 +32,11 @@ typedef union PagetableEntry
     {
         uint64 valid : 1;     // should be 1
         uint64 entryType : 1; // should be 1
-        uint64 ta : 14;
-        uint64 : 32; // address bits [47:16]
-        uint64 : 16;
+        uint64 ta : 14;       // address bits [51:48]
+        uint64 : 32;          // address bits [47:16]
+        uint64 : 3;
+        uint64 softwareFlags : 8; // Currently unused
+        uint64 : 5;
     } tableDescriptor;
     struct PageDescriptor
     {
@@ -66,11 +68,14 @@ typedef union PagetableEntry
         uint64 : 2;
         uint64 upperAttr : 14;
     } blockDescriptor;
-    uint64 address; // set address using entry.address |= ptr
+    uint64 address; // IMPORTANT: set address using entry.address |= ptr! "=" overrides flags
     uint64 raw;
 } PagetableEntry;
 REQUIRE_SIZE(PagetableEntry, 8);
-int x = sizeof(struct PageDescriptor);
+
+typedef struct PageDescriptor PageDescriptor;
+typedef struct TableDescriptor TableDescriptor;
+
 struct Pagetable
 {
     PagetableEntry entries[512];
@@ -81,17 +86,34 @@ Pagetable *kernelPagetable;
 #define PTE2PA(x) ((void *)(x & (BITMASK(48) - BITMASK(12))))
 #define PA2PTE(x) ((uint64)x)
 
-static PagetableEntry vm_getFlags(enum MairIdxs mairIdx, bool pxn, enum AccessPerms ap)
+static PageDescriptor vm_getPageDescriptor(enum MairIdxs mairIdx, bool pxn, enum AccessPerms ap, void *address)
 {
-    PagetableEntry entry = {0};
+    PageDescriptor entry = {0};
     entry.valid = true;
     entry.entryType = 1;
-    entry.pageDescriptor.attrIndx = mairIdx;
-    entry.pageDescriptor.ap = ap;
-    entry.pageDescriptor.pxn = pxn;
-    entry.pageDescriptor.af = 1;                               // cpu generates a fault if this is set to 0
-    entry.pageDescriptor.sh = (mairIdx == IDX_NORMAL) ? 3 : 0; // inner shareable if normal memory
-    return entry;
+    entry.attrIndx = mairIdx;
+    entry.ap = ap;
+    entry.sh = (mairIdx == IDX_NORMAL) ? 3 : 0; // inner shareable if normal memory
+    entry.af = 1;                               // cpu generates a fault if this is set to 0
+    entry.pxn = pxn;
+
+    // "(uint64)entry |= (uint64)address" is not legal, so i created this crime
+    // "(uint64)entry |= (uint64)address" is not legal :(
+    PagetableEntry tmp = {.pageDescriptor = entry};
+    tmp.address |= (uint64)address;
+    return tmp.pageDescriptor;
+}
+static TableDescriptor vm_getTableDescriptor(void *address)
+{
+    TableDescriptor entry = {0};
+    entry.valid = true;
+    entry.entryType = 1;
+
+    // "(uint64)entry |= (uint64)address" is not legal :(
+    PagetableEntry tmp = {.tableDescriptor = entry};
+    tmp.address |= (uint64)address;
+
+    return tmp.tableDescriptor;
 }
 
 // Get the page table entry at level 3, which points to a 4KB memory region
@@ -120,7 +142,7 @@ static PagetableEntry *vm_getPTE(Pagetable *table, void *virtualAddr)
 
         PagetableEntry entry = table->entries[index];
         assert(entry.valid, "invalid entry");
-        table = (Pagetable *)PTE2PA(entry.raw); // Extract [47..12], which is the next level page table adress ([11..00] is always zero)
+        table = (Pagetable *)PTE2PA(entry.address); // Extract [47..12], which is the next level page table adress ([11..00] is always zero)
 
         lsb -= 9;
     }
@@ -147,15 +169,13 @@ void vm_map(Pagetable *table, void *virtualAddr, void *physicalAddr, uint size, 
     byte *va = virtualAddr;
     byte *pa = physicalAddr;
 
-    PagetableEntry flags = vm_getFlags(mairIdx, pxn, ap);
-
     byte *lastPage = va + size;
     while (va < lastPage)
     {
         PagetableEntry *entry = vm_getPTE(table, va);
         assert(!entry->valid || replace, "entry exists but replacing is disallowed");
-        *entry = flags;
-        entry->address |= (uint64)pa;
+
+        entry->pageDescriptor = vm_getPageDescriptor(mairIdx, pxn, ap, pa);
 
         va += PAGE_SIZE;
         pa += PAGE_SIZE;
@@ -233,8 +253,7 @@ static PagetableEntry *vm_getPTEAllocating(Pagetable *table, void *virtualAddr)
         {
             void *ptr = pageAlloc_alloc();
             mem_set(ptr, 0, PAGE_SIZE);
-            *entry = vm_getFlags(IDX_NORMAL_NO_CACHE, true, PRIV_RW);
-            entry->address |= (uint64)ptr;
+            entry->tableDescriptor = vm_getTableDescriptor(ptr);
         }
 
         table = (Pagetable *)PTE2PA(entry->address); // Extract [47..12], which is the next level page table adress
@@ -253,15 +272,13 @@ static void vm_mapAllocating(Pagetable *table, void *virtualAddr, void *physical
     byte *va = virtualAddr;
     byte *pa = physicalAddr;
 
-    PagetableEntry flags = vm_getFlags(mairIdx, pxn, ap);
-
     byte *lastPage = va + size;
     while (va < lastPage)
     {
         PagetableEntry *entry = vm_getPTEAllocating(table, va);
         assert(!entry->valid, "entry already exists");
-        *entry = flags;
-        entry->address = (uint64)pa;
+
+        entry->pageDescriptor = vm_getPageDescriptor(mairIdx, pxn, ap, pa);
 
         va += PAGE_SIZE;
         pa += PAGE_SIZE;
@@ -287,7 +304,7 @@ static void vm_setConfig(const Pagetable *kernelPagetable)
     tcr.tg0 = 0;   // 4kB granule size for ttbr0
     tcr.t1sz = 16; // size of the region addressed by ttbr0 =2^(64-16)=2^48 (=> 48bits)
     tcr.a1 = 0;    // ttbr0 defines the ASID (ttbr1.ASID is ignored)
-    tcr.epd1 = 0;  // enable ttbr1 translation table walks
+    tcr.epd1 = 1;  // disable ttbr1 translation table walks
     tcr.irgn1 = 1; // ttbr1 inner cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
     tcr.orgn1 = 1; // ttbr1 outer cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
     tcr.sh1 = 3;   // ttbr1: inner shareable
@@ -323,7 +340,7 @@ void vm_enable(void)
 bool vm_isEnabled(void)
 {
     sctlr_el1 sysControlReg = cpu_sysregs_sctlr_el1_read();
-    return sysControlReg.m == 1; // Check the virtual memory enabled bit
+    return sysControlReg.m; // Check the virtual memory enabled bit
 }
 
 void vm_init(void)
