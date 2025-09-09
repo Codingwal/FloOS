@@ -23,6 +23,7 @@ typedef void (*Func)(void);
 #define NULL 0
 
 #define PACKED __attribute__((packed))
+#define ALIGNED(x) __attribute__((aligned(x)))
 
 #define offsetof(TYPE, MEMBER) __builtin_offsetof(TYPE, MEMBER)
 

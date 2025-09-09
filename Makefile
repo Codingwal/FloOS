@@ -7,6 +7,8 @@ GCCPATH = arm-gnu-toolchain-14.2.rel1-mingw-w64-x86_64-aarch64-none-elf/bin
 GCCFLAGS-OS = -ffreestanding -nostdinc -nostdlib -nostartfiles -DOS=1 -mgeneral-regs-only
 GCCFLAGS = -Iinclude -Wall -O2 -Werror -Wextra -pedantic
 
+LDFILE = link.ld
+
 # Create kernel8.img
 os: kernel8.img
 
@@ -19,10 +21,9 @@ os: kernel8.img
 	$(GCCPATH)/aarch64-none-elf-gcc $(GCCFLAGS) $(GCCFLAGS-OS) -c $< -o $@
 
 # Link files and extract .img from .elf
-kernel8.img: $(OCFILES) $(OSFILES)
-	$(GCCPATH)/aarch64-none-elf-ld -nostdlib $(OCFILES) $(OSFILES) -T link.ld -o kernel8.elf
+kernel8.img: $(OCFILES) $(OSFILES) $(LDFILE)
+	$(GCCPATH)/aarch64-none-elf-ld -nostdlib $(OCFILES) $(OSFILES) -T $(LDFILE) -o kernel8.elf
 	$(GCCPATH)/aarch64-none-elf-objcopy -O binary kernel8.elf kernel8.img
-
 
 # Clean
 clean:

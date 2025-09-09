@@ -41,19 +41,5 @@ int main(void)
 
     print("\nFinished initializing flOSse.\n\n");
 
-    timer_setTimer(2 * 1000);
-    print("Set timer\n");
-
-    while (true)
-    {
-        print("Waiting...\n");
-
-        // Waste time
-        for (uint i = 0; i < 1000 * 1000; i++)
-        {
-            print("");
-        }
-    }
-
     halt();
 }

@@ -24,6 +24,8 @@
 #define PAGE_ROUND_DOWN(addr) ROUND_DOWN(addr, PAGE_SIZE)
 #define PAGE_ROUND_UP(addr) ROUND_UP(addr, PAGE_SIZE)
 
+#define HIGHER_HALF_BASE 0xFFFF000000000000 // 0xFFFF_0000_0000_0000
+
 // Addresses set by linker
 
 extern char _start[]; // = _text_start

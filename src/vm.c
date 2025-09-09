@@ -1,8 +1,6 @@
 #include "vm.h"
-#include "pageAlloc.h"
 #include "mem.h"
 #include "error.h"
-#include "cpu.h"
 #include "io.h"
 #include "cpu.h"
 
@@ -12,7 +10,9 @@
 // page 2591: page descriptor structure
 // page 2595: page descriptor attribute fields
 // page 2600: access permissions
-// 2598
+
+#define PTE2PA(x) ((void *)(x & (BITMASK(48) - BITMASK(12))))
+#define PA2PTE(x) ((uint64)x)
 
 enum
 {
@@ -61,20 +61,28 @@ typedef union PagetableEntry
     {
         uint64 valid : 1;     // should be 1
         uint64 entryType : 1; // should be 0
-        uint64 lowerAttr : 10;
-        uint64 oa : 4;
-        uint64 nT : 1;
-        uint64 : 31; // address bits [47:n] // L1: n=42, L2: n=29
-        uint64 : 2;
-        uint64 upperAttr : 14;
+        uint64 attrIndx : 3;  // index into mair_elX
+        uint64 ns : 1;        // non secure bit
+        uint64 ap : 2;        // ap[2:1] access permissions
+        uint64 sh : 2;        // shareability field
+        uint64 af : 1;        // access flag
+        uint64 ng : 1;        // not global
+        uint64 : 4;
+        uint64 : 32; // address bits [47:n] (L1: n=42, L2: n=29)
+        uint64 : 4;
+        uint64 contiguous : 1; // contiguous bit
+        uint64 pxn : 1;        // privileged execute-never
+        uint64 xn : 1;         // (unpriviledged-) execute-never
+        uint64 softwareFlags : 4;
+        uint64 : 5;
     } blockDescriptor;
     uint64 address; // IMPORTANT: set address using entry.address |= ptr! "=" overrides flags
     uint64 raw;
 } PagetableEntry;
-REQUIRE_SIZE(PagetableEntry, 8);
-
 typedef struct PageDescriptor PageDescriptor;
 typedef struct TableDescriptor TableDescriptor;
+typedef struct BlockDescriptor BlockDescriptor;
+REQUIRE_SIZE(PagetableEntry, 8);
 
 struct Pagetable
 {
@@ -97,7 +105,6 @@ static PageDescriptor vm_getPageDescriptor(enum MairIdxs mairIdx, bool pxn, enum
     entry.af = 1;                               // cpu generates a fault if this is set to 0
     entry.pxn = pxn;
 
-    // "(uint64)entry |= (uint64)address" is not legal, so i created this crime
     // "(uint64)entry |= (uint64)address" is not legal :(
     PagetableEntry tmp = {.pageDescriptor = entry};
     tmp.address |= (uint64)address;
@@ -114,6 +121,71 @@ static TableDescriptor vm_getTableDescriptor(void *address)
     tmp.address |= (uint64)address;
 
     return tmp.tableDescriptor;
+}
+// static BlockDescriptor vm_getBlockDescriptor(enum MairIdxs mairIdx, bool pxn, enum AccessPerms ap, void *address)
+// {
+//     BlockDescriptor entry = {0};
+//     entry.valid = true;
+//     entry.entryType = 0;
+//     entry.attrIndx = mairIdx;
+//     entry.ap = ap;
+//     entry.sh = (mairIdx == IDX_NORMAL) ? 3 : 0; // inner shareable if normal memory
+//     entry.af = 1;                               // cpu generates a fault if this is set to 0
+//     entry.pxn = pxn;
+//     // "(uint64)entry |= (uint64)address" is not legal :(
+//     PagetableEntry tmp = {.blockDescriptor = entry};
+//     tmp.address |= (uint64)address;
+//     return tmp.blockDescriptor;
+// }
+
+static void vm_setConfig(bool enableUserPagetable, bool enableKernelPagetable)
+{
+    // Set information about the virtual address structure
+    tcr_el1 tcr = {0};
+    tcr.t0sz = 16;                     // size of the region addressed by ttbr0 =2^(64-16)=2^48 (=> 48bits)
+    tcr.epd0 = !enableUserPagetable;   // enable ttbr0 translation table walks? (0=enabled)
+    tcr.irgn0 = 1;                     // ttbr0 inner cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
+    tcr.orgn0 = 1;                     // ttbr0 outer cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
+    tcr.sh0 = 3;                       // ttbr0: inner shareable
+    tcr.tg0 = 0;                       // 4kB granule size for ttbr0
+    tcr.t1sz = 16;                     // size of the region addressed by ttbr0 =2^(64-16)=2^48 (=> 48bits)
+    tcr.a1 = 0;                        // ttbr0 defines the ASID (ttbr1.ASID is ignored)
+    tcr.epd1 = !enableKernelPagetable; // enable ttbr0 translation table walks? (0=enabled)
+    tcr.irgn1 = 1;                     // ttbr1 inner cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
+    tcr.orgn1 = 1;                     // ttbr1 outer cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
+    tcr.sh1 = 3;                       // ttbr1: inner shareable
+    tcr.tg1 = 2;                       // 4kB granule size for ttbr1
+    tcr.ips = 5;                       // intermediate physical address size = 48 bits
+    tcr.as = 0;                        // the upper 8 bits of ttbrX are ignored by hardware
+    tcr.tbi0 = 1;                      // ignore top byte for ttbr0 addresses
+    tcr.tbi1 = 1;                      // ignore top byte for ttbr1 addresses
+    cpu_sysregs_tcr_el1_write(tcr);
+
+    // Set memory attribute indirection register
+    // https://documentation-service.arm.com/static/63a43e333f28e5456434e18b (learn_the_architecture_-_aarch64_memory_attributes_and_properties)
+    // IMPORTANT: this must match the MairIdxs enum
+    mair_el1 mair = {0};
+    mair.attr0 = 0xFF; // normal
+    mair.attr1 = 68;   // normal no cache (68 = 0b01000100)
+    mair.attr2 = 0;    // device
+    cpu_sysregs_mair_el1_write(mair);
+
+    printf("mair: %ux", mair);
+
+    cpu_instrSyncBarrier();
+}
+
+static void vm_setUserPagetable(Pagetable *pagetable)
+{
+    ttbr0_el1 reg = {0};
+    reg.baddr = (uint64)pagetable;
+    cpu_sysregs_ttbr0_el1_write(reg);
+}
+static void vm_setKernelPagetable(Pagetable *pagetable)
+{
+    ttbr1_el1 reg = {0};
+    reg.baddr = (uint64)pagetable;
+    cpu_sysregs_ttbr1_el1_write(reg);
 }
 
 // Get the page table entry at level 3, which points to a 4KB memory region
@@ -285,48 +357,6 @@ static void vm_mapAllocating(Pagetable *table, void *virtualAddr, void *physical
     }
 }
 
-static void vm_setConfig(const Pagetable *kernelPagetable)
-{
-    assert(((uint64)kernelPagetable & ~BITMASK(7)) == (uint64)kernelPagetable, "kernel pagetable is not sufficiently aligned");
-
-    // Set translation table base address
-    ttbr0_el1 ttbr0 = {0};
-    ttbr0.baddr = (uint64)kernelPagetable;
-    cpu_sysregs_ttbr0_el1_write(ttbr0);
-
-    // Set information about the virtual address structure
-    tcr_el1 tcr = {0};
-    tcr.t0sz = 16; // size of the region addressed by ttbr0 =2^(64-16)=2^48 (=> 48bits)
-    tcr.epd0 = 0;  // enable ttbr0 translation table walks
-    tcr.irgn0 = 1; // ttbr0 inner cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
-    tcr.orgn0 = 1; // ttbr0 outer cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
-    tcr.sh0 = 3;   // ttbr0: inner shareable
-    tcr.tg0 = 0;   // 4kB granule size for ttbr0
-    tcr.t1sz = 16; // size of the region addressed by ttbr0 =2^(64-16)=2^48 (=> 48bits)
-    tcr.a1 = 0;    // ttbr0 defines the ASID (ttbr1.ASID is ignored)
-    tcr.epd1 = 1;  // disable ttbr1 translation table walks
-    tcr.irgn1 = 1; // ttbr1 inner cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
-    tcr.orgn1 = 1; // ttbr1 outer cacheability: Write-Back Read-Allocate Write-Allocate Cacheable
-    tcr.sh1 = 3;   // ttbr1: inner shareable
-    tcr.tg1 = 2;   // 4kB granule size for ttbr1
-    tcr.ips = 5;   // intermediate physical address size = 48 bits
-    tcr.as = 0;    // the upper 8 bits of ttbrX are ignored by hardware
-    tcr.tbi0 = 1;  // ignore top byte for ttbr0 addresses
-    tcr.tbi1 = 1;  // ignore top byte for ttbr1 addresses
-    cpu_sysregs_tcr_el1_write(tcr);
-
-    // Set memory attributes
-    // https://documentation-service.arm.com/static/63a43e333f28e5456434e18b (learn_the_architecture_-_aarch64_memory_attributes_and_properties)
-    // IMPORTANT: this must match the MairIdxs enum
-    mair_el1 mair = {0};
-    mair.attr0 = 0xFF; // normal
-    mair.attr1 = 68;   // normal no cache (68 = 0b01000100)
-    mair.attr2 = 0;    // device
-    cpu_sysregs_mair_el1_write(mair);
-
-    cpu_instrSyncBarrier();
-}
-
 void vm_enable(void)
 {
     sctlr_el1 reg = cpu_sysregs_sctlr_el1_read();
@@ -366,6 +396,8 @@ void vm_init(void)
     vm_mapAllocating(kernelPagetable, (void *)GIC_BASE, (void *)GIC_BASE, GIC_SIZE, IDX_DEVICE, true, PRIV_RW);
 
     // Setup and enable the mmu and virtual memory
-    vm_setConfig(kernelPagetable);
+    vm_setConfig(false, true);
+    vm_setUserPagetable(NULL);
+    vm_setKernelPagetable(kernelPagetable);
     vm_enable();
 }
